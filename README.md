@@ -12,3 +12,11 @@ converter.convert_and_replace(html_string)
 ```
 
 Use convert and resolve_content_links! separately if desired
+
+Developing with Docker:
+
+```
+docker compose run --rm -v $PWD:/usr/src/app app bash
+> bundle exec rspec
+> gem build canvas-link-migrator.gemspec
+```
