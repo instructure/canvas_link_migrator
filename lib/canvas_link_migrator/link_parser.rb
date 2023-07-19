@@ -134,7 +134,7 @@ module CanvasLinkMigrator
     end
 
     def resolved(new_url = nil)
-      { resolved: true, new_url: }
+      { resolved: true, new_url: new_url }
     end
 
     # returns a hash with resolution status and data to hold onto if unresolved
@@ -165,9 +165,9 @@ module CanvasLinkMigrator
         rel_path = URI::DEFAULT_PARSER.unescape($1)
         if (attr == "href" && node["class"]&.include?("instructure_inline_media_comment")) ||
            (attr == "src" && ["iframe", "source"].include?(node.name) && node["data-media-id"])
-          unresolved(:media_object, rel_path:)
+          unresolved(:media_object, rel_path: rel_path)
         else
-          unresolved(:file, rel_path:)
+          unresolved(:file, rel_path: rel_path)
         end
       elsif (attr == "href" && node["class"]&.include?("instructure_inline_media_comment")) ||
             (attr == "src" && ["iframe", "source"].include?(node.name) && node["data-media-id"])
