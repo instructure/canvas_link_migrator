@@ -1,10 +1,4 @@
 {
-  "attachment_path_id_lookup": {
-    "subfolder/test.png": "G",
-    "subfolder/with a space/test.png": "F",
-    "subfolder/withCapital/test.png": "migration_id!",
-    "test.png": "E"
-  },
   "contains_migration_ids": true,
   "destination_course": "2",
   "destination_hosts": [
@@ -43,16 +37,7 @@
           "id": "4",
           "media_entry_id": "m-stuff"
         }
-      },
-      "G": {
-        "destination": {
-          "id": "7",
-          "media_entry_id": "m-stuff"
-        },
-        "source": {
-          "id": "2",
-          "media_entry_id": "m-stuff"
-        }
+      }
     },
     "module_items": {
       "C": {
@@ -75,6 +60,12 @@
           "url": "slug-a"
         }
       }
+    }
+  },
+  "file_tree": {
+    "folder 1": {
+      "id": "1",
+      "sub_folders": {}
     }
   },
   "source_course": "1",

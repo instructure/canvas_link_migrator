@@ -2,7 +2,7 @@
 
 Gem::Specification.new do |spec|
   spec.name          = "canvas_link_migrator"
-  spec.version       = CanvasLinkMigrator::VERSION
+  spec.version       = "0.1.0"
   spec.authors       = ["Mysti Lilla"]
   spec.email         = ["mysti@instructure.com"]
   spec.summary       = "Instructure gem for migrating Canvas style rich content"
@@ -13,7 +13,6 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency "activesupport"
   spec.add_dependency "nokogiri"
-  spec.add_dependency "rack"
 
   spec.add_development_dependency "bundler"
   spec.add_development_dependency "byebug"
