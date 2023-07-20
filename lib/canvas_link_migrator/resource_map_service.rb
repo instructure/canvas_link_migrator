@@ -52,9 +52,9 @@ module CanvasLinkMigrator
       migration_data["destination_hosts"]
     end
 
-    def attachment_path_id_lookup; end
-
-    def attachment_path_id_lookup_lower; end
+    def attachment_path_id_lookup
+      migration_data["attachment_path_id_lookup"]
+    end
 
     def root_folder_name
       migration_data["destination_root_folder"]
@@ -83,6 +83,10 @@ module CanvasLinkMigrator
 
     def convert_attachment_migration_id(migration_id)
       resources.dig("files", migration_id, "destination", "id")
+    end
+
+    def lookup_attachment_by_migration_id(migration_id)
+      resources.dig("files", migration_id, "destination")
     end
   end
 end
