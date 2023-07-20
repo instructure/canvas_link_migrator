@@ -30,7 +30,6 @@ module CanvasLinkMigrator
     end
 
     delegate :convert, to: :link_parser
-    delegate :resolver_links!, to: :link_resolver
 
     def convert_exported_html(input_html)
       new_html = link_parser.convert(input_html, "type", "lookup_id", "field")

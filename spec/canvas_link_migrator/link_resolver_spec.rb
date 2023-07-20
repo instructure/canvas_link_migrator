@@ -63,4 +63,10 @@ describe CanvasLinkMigrator::LinkResolver do
       expect(link[:new_value]).to eq("/courses/2/discussion_topics/7?foo=bar")
     end
   end
+
+  describe "attachment_path_id_lookup_lower" do
+    it "shows correct lowercase paths" do
+      expect(resolver.attachment_path_id_lookup_lower).to include({ "subfolder/withcapital/test.png" => "migration_id!" })
+    end
+  end
 end
