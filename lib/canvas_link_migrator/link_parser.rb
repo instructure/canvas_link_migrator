@@ -17,6 +17,9 @@
 # You should have received a copy of the GNU Affero General Public License along
 # with this program. If not, see <http://www.gnu.org/licenses/>.
 
+require "nokogiri"
+require "digest"
+
 module CanvasLinkMigrator
   class LinkParser
     REFERENCE_KEYWORDS = %w[CANVAS_COURSE_REFERENCE CANVAS_OBJECT_REFERENCE WIKI_REFERENCE IMS_CC_FILEBASE IMS-CC-FILEBASE].freeze
@@ -50,6 +53,9 @@ module CanvasLinkMigrator
       wiki
       wiki_pages
     ].freeze
+    CONTAINER_TYPES = %w[div p body].freeze
+    LINK_ATTRS = %w[rel href src srcset data value longdesc data-download-url].freeze
+    RCE_MEDIA_TYPES = %w[audio video].freeze
 
     attr_reader :unresolved_link_map, :migration_query_service
 
@@ -71,6 +77,42 @@ module CanvasLinkMigrator
 
     def placeholder(old_value)
       "#{LINK_PLACEHOLDER}_#{Digest::MD5.hexdigest(old_value)}"
+    end
+
+    def convert(html, item_type, mig_id, field, remove_outer_nodes_if_one_child: nil)
+      mig_id = mig_id.to_s
+      doc = Nokogiri::HTML5(html || "")
+
+      # Replace source tags with iframes
+      doc.search("source[data-media-id]").each do |source|
+        next unless RCE_MEDIA_TYPES.include?(source.parent.name)
+
+        media_node = source.parent
+        media_node.name = "iframe"
+        media_node["src"] = source["src"]
+        source.remove
+      end
+
+      doc.search("*").each do |node|
+        LINK_ATTRS.each do |attr|
+          convert_link(node, attr, item_type, mig_id, field)
+        end
+      end
+
+      node = doc.at_css("body")
+      return "" unless node
+
+      if remove_outer_nodes_if_one_child
+        while node.children.size == 1 && node.child.child
+          break unless CONTAINER_TYPES.member?(node.child.name) && node.child.attributes.blank?
+
+          node = node.child
+        end
+      end
+
+      node.inner_html
+    rescue Nokogiri::SyntaxError
+      ""
     end
 
     def convert_link(node, attr, item_type, mig_id, field)
