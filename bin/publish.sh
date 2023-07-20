@@ -9,6 +9,6 @@ existing_versions=$(gem list --exact canvas-link-migrator --remote --all | grep 
 if [[ $existing_versions == *$current_version* ]]; then
   echo "Gem has already been published ... skipping ..."
 else
-  gem build ./canvas_link_migrator.gemspec
+  gem build ./canvas-link-migrator.gemspec
   find canvas-link-migrator-*.gem | xargs gem push
 fi
