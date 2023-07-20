@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "lib/canvas_link_migrator/version"
+
 Gem::Specification.new do |spec|
   spec.name          = "canvas_link_migrator"
   spec.version       = CanvasLinkMigrator::VERSION
