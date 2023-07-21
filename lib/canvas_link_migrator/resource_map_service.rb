@@ -75,8 +75,8 @@ module CanvasLinkMigrator
     # looks up a discussion topic
     def convert_discussion_topic_migration_id(migration_id)
       dt_id = resources.dig("discussion_topics", migration_id, "destination", "id")
-      # the /discusson_topic url scheme is used for annnouncments as well. We'll
-      # check both here
+      # the /discusson_topic url scheme is used for annnouncments as well.
+      # we'll check both here
       dt_id || convert_announcement_migration_id(migration_id)
     end
 
@@ -93,9 +93,13 @@ module CanvasLinkMigrator
     end
 
     def convert_migration_id(type, migration_id)
-      if LinkParser::KNOWN_REFERENCE_TYPES.include? type
-        resources.dig(type, migration_id, "destination", "id")
-      end
+      id = if CanvasLinkMigrator::LinkParser::KNOWN_REFERENCE_TYPES.include? type
+             resources.dig(type, migration_id, "destination", "id")
+           end
+      return id if id.present?
+      # the /discusson_topic url scheme is used for annnouncments as well.
+      # we'll check both here
+      convert_announcement_migration_id(migration_id) if type == "discussion_topics"
     end
   end
 end
