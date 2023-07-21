@@ -74,7 +74,14 @@ module CanvasLinkMigrator
 
     # looks up a discussion topic
     def convert_discussion_topic_migration_id(migration_id)
-      resources.dig("discussion_topics", migration_id, "destination", "id")
+      dt_id = resources.dig("discussion_topics", migration_id, "destination", "id")
+      # the /discusson_topic url scheme is used for annnouncments as well. We'll
+      # check both here
+      dt_id || convert_announcement_migration_id(migration_id)
+    end
+
+    def convert_announcement_migration_id(migration_id)
+      resources.dig("announcements", migration_id, "destination", "id")
     end
 
     def convert_context_module_tag_migration_id(migration_id)
