@@ -32,7 +32,7 @@ module CanvasLinkMigrator
     end
 
     def resources
-      migration_data["resource_mapping"]
+      migration_data["resource_mapping"] || {}
     end
 
     ### Overwritable methods
