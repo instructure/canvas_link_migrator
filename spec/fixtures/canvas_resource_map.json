@@ -7,6 +7,26 @@
   ],
   "destination_root_folder": "course files/",
   "resource_mapping": {
+    "announcements": {
+      "H": {
+        "source": {
+          "id": "9"
+        },
+        "destination": {
+          "id": "10"
+        }
+      }
+    },
+    "assignments": {
+      "I": {
+        "source": {
+          "id": "11"
+        },
+        "destination": {
+          "id": "12"
+        }
+      }
+    },
     "discussion_topics": {
       "G": {
         "destination": {
