@@ -84,5 +84,11 @@ module CanvasLinkMigrator
     def convert_attachment_migration_id(migration_id)
       resources.dig("files", migration_id, "destination", "id")
     end
+
+    def convert_migration_id(type, migration_id)
+      if LinkParser::KNOWN_REFERENCE_TYPES.include? type
+        resources.dig(type, migration_id, "destination", "id")
+      end
+    end
   end
 end
