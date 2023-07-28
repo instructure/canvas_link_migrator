@@ -69,6 +69,12 @@ describe CanvasLinkMigrator::LinkResolver do
       expect(link[:new_value]).to eq("/courses/2/discussion_topics/10?foo=bar")
     end
 
+    it "converts module links" do
+      link = { link_type: :object, type: "modules", migration_id: "J", query: "?foo=bar" }
+      resolver.resolve_link!(link)
+      expect(link[:new_value]).to eq("/courses/2/modules/36?foo=bar")
+    end
+
     it "converters other links" do
       link = { link_type: :object, type: "assignments", migration_id: "I", query: "#fie" }
       resolver.resolve_link!(link)
