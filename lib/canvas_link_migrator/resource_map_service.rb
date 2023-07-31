@@ -93,6 +93,7 @@ module CanvasLinkMigrator
     end
 
     def convert_migration_id(type, migration_id)
+      type = "modules" if type == "context_modules"
       id = if CanvasLinkMigrator::LinkParser::KNOWN_REFERENCE_TYPES.include? type
              resources.dig(type, migration_id, "destination", "id")
            end

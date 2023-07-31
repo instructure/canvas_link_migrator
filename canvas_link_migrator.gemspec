@@ -2,7 +2,7 @@
 
 Gem::Specification.new do |spec|
   spec.name          = "canvas_link_migrator"
-  spec.version       = "0.1.1"
+  spec.version       = "0.1.2"
   spec.authors       = ["Mysti Lilla", "James Logan"]
   spec.email         = ["mysti@instructure.com", "james.logan@instructure.com"]
   spec.summary       = "Instructure gem for migrating Canvas style rich content"
