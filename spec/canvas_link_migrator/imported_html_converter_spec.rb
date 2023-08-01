@@ -56,62 +56,55 @@ describe CanvasLinkMigrator::ImportedHtmlConverter do
         end
       end
 
-      # it "finds an attachment by migration id" do
-      #   test_string = %{<p>This is an image: <br /><img src="%24CANVAS_OBJECT_REFERENCE%24/attachments/F" alt=":(" /></p>}
-      #   expect(@converter.convert_exported_html(test_string)).to eq([%{<p>This is an image: <br><img src="#{@path}files/6/preview" alt=":("></p>}, nil])
-      # end
+      it "finds an attachment by migration id" do
+        test_string = %{<p>This is an image: <br /><img src="%24CANVAS_OBJECT_REFERENCE%24/attachments/F" alt=":(" /></p>}
+        expect(@converter.convert_exported_html(test_string)).to eq([%{<p>This is an image: <br><img src="#{@path}files/6/preview" alt=":("></p>}, nil])
+      end
 
-      # it "finds an attachment by path" do
-      #   test_string = %{<p>This is an image: <br /><img src="%24IMS_CC_FILEBASE%24/test.png" alt=":(" /></p>}
+      it "finds an attachment by path" do
+        test_string = %{<p>This is an image: <br /><img src="%24IMS_CC_FILEBASE%24/test.png" alt=":(" /></p>}
 
-      #   # if there isn't a path->migration id map it'll be a relative course file path
-      #   expect(@converter.convert_exported_html(test_string)).to eq %{<p>This is an image: <br><img src="#{@path}file_contents/course%20files/test.png" alt=":("></p>}
+        # if there isn't a path->migration id map it'll be a relative course file path
+        expect(@converter.link_resolver).to receive(:attachment_path_id_lookup).exactly(4).times.and_return({})
+        html, bad_links = @converter.convert_exported_html(test_string)
+        expect(html).to eq %{<p>This is an image: <br><img src="#{@path}file_contents/course%20files/test.png" alt=":("></p>}
+        expect(bad_links[0]).to include({ link_type: :file, missing_url: "/courses/2/file_contents/course%20files/test.png" })
 
-      #   @migration.attachment_path_id_lookup = { "test.png" => att.migration_id }
-      #   expect(@converter.convert_exported_html(test_string)).to eq %{<p>This is an image: <br><img src="#{@path}files/#{att.id}/preview" alt=":("></p>}
-      # end
+        expect(@converter.link_resolver).to receive(:attachment_path_id_lookup).twice.and_call_original
+        expect(@converter.convert_exported_html(test_string)).to eq([%{<p>This is an image: <br><img src="#{@path}files/5/preview" alt=":("></p>}, nil])
+      end
 
-      # it "finds an attachment by a path with a space" do
-      #   att = make_test_att
-      #   @migration.attachment_path_id_lookup = { "subfolder/with a space/test.png" => att.migration_id }
+      it "finds an attachment by a path with a space" do
+        test_string = %(<img src="subfolder/with%20a%20space/test.png" alt="nope" />)
+        expect(@converter.convert_exported_html(test_string)).to eq([%(<img src="#{@path}files/6/preview" alt="nope">), nil])
 
-      #   test_string = %(<img src="subfolder/with%20a%20space/test.png" alt="nope" />)
-      #   expect(@converter.convert_exported_html(test_string)).to eq %(<img src="#{@path}files/#{att.id}/preview" alt="nope">)
+        test_string = %(<img src="subfolder/with+a+space/test.png" alt="nope" />)
+        expect(@converter.convert_exported_html(test_string)).to eq([%(<img src="#{@path}files/6/preview" alt="nope">), nil])
+      end
 
-      #   test_string = %(<img src="subfolder/with+a+space/test.png" alt="nope" />)
-      #   expect(@converter.convert_exported_html(test_string)).to eq %(<img src="#{@path}files/#{att.id}/preview" alt="nope">)
-      # end
+      it "finds an attachment even if the link has an extraneous folder" do
+        test_string = %(<img src="anotherfolder/subfolder/test.png" alt="nope" />)
+        expect(@converter.convert_exported_html(test_string)).to eq([%(<img src="#{@path}files/7/preview" alt="nope">), nil])
+      end
 
-      # it "finds an attachment even if the link has an extraneous folder" do
-      #   att = make_test_att
-      #   @migration.attachment_path_id_lookup = { "subfolder/test.png" => att.migration_id }
+      it "finds an attachment by path if capitalization is different" do
+        expect(@converter.link_resolver).to receive(:attachment_path_id_lookup).twice.and_return({ "subfolder/withCapital/test.png" => "wrong!" })
+        expect(@converter.link_resolver).to receive(:attachment_path_id_lookup).twice.and_return({ "subfolder/withcapital/test.png" => "F" })
 
-      #   test_string = %(<img src="anotherfolder/subfolder/test.png" alt="nope" />)
-      #   expect(@converter.convert_exported_html(test_string)).to eq %(<img src="#{@path}files/#{att.id}/preview" alt="nope">)
-      # end
+        test_string = %(<img src="subfolder/WithCapital/TEST.png" alt="nope" />)
+        expect(@converter.convert_exported_html(test_string)).to eq([%(<img src="#{@path}files/6/preview" alt="nope">), nil])
+      end
 
-      # it "finds an attachment by path if capitalization is different" do
-      #   att = make_test_att
-      #   @migration.attachment_path_id_lookup = { "subfolder/withCapital/test.png" => "wrong!" }
-      #   @migration.attachment_path_id_lookup_lower = { "subfolder/withcapital/test.png" => att.migration_id }
+      it "finds an attachment with query params" do
+        test_string = %(<img src="%24IMS_CC_FILEBASE%24/test.png?canvas_customaction=1&canvas_qs_customparam=1" alt="nope" />)
+        expect(@converter.convert_exported_html(test_string)).to eq([%(<img src="#{@path}files/5/customaction?customparam=1" alt="nope">), nil])
 
-      #   test_string = %(<img src="subfolder/WithCapital/TEST.png" alt="nope" />)
-      #   expect(@converter.convert_exported_html(test_string)).to eq %(<img src="#{@path}files/#{att.id}/preview" alt="nope">)
-      # end
+        test_string = %(<img src="%24IMS_CC_FILEBASE%24/test.png?canvas_qs_customparam2=3" alt="nope" />)
+        expect(@converter.convert_exported_html(test_string)).to eq([%(<img src="#{@path}files/5/preview?customparam2=3" alt="nope">), nil])
 
-      # it "finds an attachment with query params" do
-      #   att = make_test_att
-      #   @migration.attachment_path_id_lookup = { "test.png" => att.migration_id }
-
-      #   test_string = %(<img src="%24IMS_CC_FILEBASE%24/test.png?canvas_customaction=1&canvas_qs_customparam=1" alt="nope" />)
-      #   expect(@converter.convert_exported_html(test_string)).to eq %(<img src="#{@path}files/#{att.id}/customaction?customparam=1" alt="nope">)
-
-      #   test_string = %(<img src="%24IMS_CC_FILEBASE%24/test.png?canvas_qs_customparam2=3" alt="nope" />)
-      #   expect(@converter.convert_exported_html(test_string)).to eq %(<img src="#{@path}files/#{att.id}/preview?customparam2=3" alt="nope">)
-
-      #   test_string = %(<img src="%24IMS_CC_FILEBASE%24/test.png?notarelevantparam" alt="nope" />)
-      #   expect(@converter.convert_exported_html(test_string)).to eq %(<img src="#{@path}files/#{att.id}/preview" alt="nope">)
-      # end
+        test_string = %(<img src="%24IMS_CC_FILEBASE%24/test.png?notarelevantparam" alt="nope" />)
+        expect(@converter.convert_exported_html(test_string)).to eq([%(<img src="#{@path}files/5/preview" alt="nope">), nil])
+      end
     end
 
     it "converts picture source srcsets" do

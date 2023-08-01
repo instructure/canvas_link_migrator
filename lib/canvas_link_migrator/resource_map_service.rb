@@ -52,9 +52,9 @@ module CanvasLinkMigrator
       migration_data["destination_hosts"]
     end
 
-    def attachment_path_id_lookup; end
-
-    def attachment_path_id_lookup_lower; end
+    def attachment_path_id_lookup
+      migration_data["attachment_path_id_lookup"]
+    end
 
     def root_folder_name
       migration_data["destination_root_folder"]
@@ -101,6 +101,10 @@ module CanvasLinkMigrator
       # the /discusson_topic url scheme is used for annnouncments as well.
       # we'll check both here
       convert_announcement_migration_id(migration_id) if type == "discussion_topics"
+    end
+
+    def lookup_attachment_by_migration_id(migration_id)
+      resources.dig("files", migration_id, "destination")
     end
   end
 end
