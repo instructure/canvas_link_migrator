@@ -1,8 +1,10 @@
 # frozen_string_literal: true
 
+require_relative "lib/canvas_link_migrator/version"
+
 Gem::Specification.new do |spec|
   spec.name          = "canvas_link_migrator"
-  spec.version       = "0.1.2"
+  spec.version       = CanvasLinkMigrator::VERSION
   spec.authors       = ["Mysti Lilla", "James Logan"]
   spec.email         = ["mysti@instructure.com", "james.logan@instructure.com"]
   spec.summary       = "Instructure gem for migrating Canvas style rich content"
@@ -13,6 +15,7 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency "activesupport"
   spec.add_dependency "nokogiri"
+  spec.add_dependency "rack"
 
   spec.add_development_dependency "bundler"
   spec.add_development_dependency "byebug"
