@@ -48,15 +48,15 @@ module CanvasLinkMigrator
     def resolve_link!(link)
       case link[:link_type]
       when :wiki_page
-        if (linked_wiki_url = @migration_id_converter.convert_wiki_page_migration_id_to_slug(link[:migration_id]))
+        if (linked_wiki_url = migration_id_converter.convert_wiki_page_migration_id_to_slug(link[:migration_id]))
           link[:new_value] = "#{context_path}/pages/#{linked_wiki_url}#{link[:query]}"
         end
       when :discussion_topic
-        if (linked_topic_id = @migration_id_converter.convert_discussion_topic_migration_id(link[:migration_id]))
+        if (linked_topic_id = migration_id_converter.convert_discussion_topic_migration_id(link[:migration_id]))
           link[:new_value] = "#{context_path}/discussion_topics/#{linked_topic_id}#{link[:query]}"
         end
       when :module_item
-        if (tag_id = @migration_id_converter.convert_context_module_tag_migration_id(link[:migration_id]))
+        if (tag_id = migration_id_converter.convert_context_module_tag_migration_id(link[:migration_id]))
           link[:new_value] = "#{context_path}/modules/items/#{tag_id}#{link[:query]}"
         end
       when :object
@@ -70,15 +70,15 @@ module CanvasLinkMigrator
           query = resolve_module_item_query(nil, link[:query])
           link[:new_value] = "#{context_path}/pages/#{migration_id}#{query}"
         elsif type == "attachments"
-          att_id = @migration_id_converter.convert_attachment_migration_id(migration_id)
+          att_id = migration_id_converter.convert_attachment_migration_id(migration_id)
           if att_id
             link[:new_value] = "#{context_path}/files/#{att_id}/preview"
           end
         elsif type == "media_attachments_iframe"
-          att_id = @migration_id_converter.convert_attachment_migration_id(migration_id)
+          att_id = migration_id_converter.convert_attachment_migration_id(migration_id)
           link[:new_value] = att_id ? "/media_attachments_iframe/#{att_id}#{link[:query]}" : link[:old_value]
         else
-          object_id = @migration_id_converter.convert_migration_id(type, migration_id)
+          object_id = migration_id_converter.convert_migration_id(type, migration_id)
           if object_id
             query = resolve_module_item_query(nil, link[:query])
             link[:new_value] = "#{context_path}/#{type_for_url}/#{object_id}#{query}"
@@ -113,7 +113,7 @@ module CanvasLinkMigrator
         end
         link[:new_value] = new_url
       when :file_ref
-        file_id = @migration_id_converter.convert_attachment_migration_id(link[:migration_id])
+        file_id = migration_id_converter.convert_attachment_migration_id(link[:migration_id])
         if file_id
           rest = link[:rest].presence || "/preview"
 
@@ -138,7 +138,7 @@ module CanvasLinkMigrator
 
       original_param = query.sub("?", "").split("&").detect { |p| p.include?("module_item_id=") }
       mig_id = original_param.split("=").last
-      tag_id = @migration_id_converter.convert_context_module_tag_migration_id(mig_id)
+      tag_id = migration_id_converter.convert_context_module_tag_migration_id(mig_id)
       return query unless tag_id
 
       new_param = "module_item_id=#{tag_id}"
@@ -147,7 +147,7 @@ module CanvasLinkMigrator
 
     def missing_relative_file_url(rel_path)
       # the rel_path should already be escaped
-      File.join(URI::DEFAULT_PARSER.escape("#{context_path}/file_contents/#{@migration_id_converter.root_folder_name}"), rel_path.gsub(" ", "%20"))
+      File.join(URI::DEFAULT_PARSER.escape("#{context_path}/file_contents/#{migration_id_converter.root_folder_name}"), rel_path.gsub(" ", "%20"))
     end
 
     def find_file_in_context(rel_path)
@@ -165,7 +165,7 @@ module CanvasLinkMigrator
       end
 
       # This md5 comparison is here to handle faulty cartridges with the migration_id equivalent of an empty string
-      mig_id && mig_id != "gd41d8cd98f00b204e9800998ecf8427e" && @migration_id_converter.lookup_attachment_by_migration_id(mig_id)
+      mig_id && mig_id != "gd41d8cd98f00b204e9800998ecf8427e" && migration_id_converter.lookup_attachment_by_migration_id(mig_id)
     end
 
     def resolve_relative_file_url(rel_path)
