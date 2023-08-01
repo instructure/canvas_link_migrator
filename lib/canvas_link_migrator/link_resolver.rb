@@ -224,7 +224,7 @@ module CanvasLinkMigrator
 
     def resolve_media_comment_data(node, rel_path)
       if (file = find_file_in_context(rel_path[/^[^?]+/])) # strip query string for this search
-        media_id = file["media_entry_id"]
+        media_id = file.try(:media_object)&.media_id || file["media_entry_id"]
         if media_id && media_id != "maybe"
           if ["iframe", "source"].include?(node.name)
             node["data-media-id"] = media_id
