@@ -18,9 +18,14 @@
 # with this program. If not, see <http://www.gnu.org/licenses/>.
 
 require "active_support/core_ext/object"
+require "rack"
 
 module CanvasLinkMigrator
   class LinkResolver
+    attr_accessor :migration_id_converter
+
+    delegate :context_path, :attachment_path_id_lookup, to: :migration_id_converter
+
     def initialize(migration_id_converter)
       @migration_id_converter = migration_id_converter
     end
@@ -35,8 +40,8 @@ module CanvasLinkMigrator
       end
     end
 
-    def context_path
-      @migration_id_converter.context_path
+    def attachment_path_id_lookup_lower
+      @attachment_path_id_lookup_lower ||= attachment_path_id_lookup&.transform_keys(&:downcase)
     end
 
     # finds the :new_value to use to replace the placeholder
@@ -150,13 +155,13 @@ module CanvasLinkMigrator
       # This is for backward-compatibility: canvas attachment filenames are escaped
       # with '+' for spaces and older exports have files with that instead of %20
       alt_rel_path = rel_path.tr("+", " ")
-      if @migration_id_converter.attachment_path_id_lookup
-        mig_id ||= @migration_id_converter.attachment_path_id_lookup[rel_path]
-        mig_id ||= @migration_id_converter.attachment_path_id_lookup[alt_rel_path]
+      if attachment_path_id_lookup
+        mig_id ||= attachment_path_id_lookup[rel_path]
+        mig_id ||= attachment_path_id_lookup[alt_rel_path]
       end
-      if !mig_id && @migration_id_converter.attachment_path_id_lookup_lower
-        mig_id ||= @migration_id_converter.attachment_path_id_lookup_lower[rel_path.downcase]
-        mig_id ||= @migration_id_converter.attachment_path_id_lookup_lower[alt_rel_path.downcase]
+      if !mig_id && attachment_path_id_lookup_lower
+        mig_id ||= attachment_path_id_lookup_lower[rel_path.downcase]
+        mig_id ||= attachment_path_id_lookup_lower[alt_rel_path.downcase]
       end
 
       # This md5 comparison is here to handle faulty cartridges with the migration_id equivalent of an empty string
@@ -182,7 +187,7 @@ module CanvasLinkMigrator
       while new_url.nil? && !rel_path_parts.empty?
         sub_path = File.join(rel_path_parts)
         if (file = find_file_in_context(sub_path))
-          new_url = "#{context_path}/files/#{file.id}"
+          new_url = "#{context_path}/files/#{file["id"]}"
           # support other params in the query string, that were exported from the
           # original path components and query string. see
           # CCHelper::file_query_string
@@ -219,13 +224,13 @@ module CanvasLinkMigrator
 
     def resolve_media_comment_data(node, rel_path)
       if (file = find_file_in_context(rel_path[/^[^?]+/])) # strip query string for this search
-        media_id = (file.media_object&.media_id || file.media_entry_id)
+        media_id = file.try(:media_object)&.media_id || file["media_entry_id"]
         if media_id && media_id != "maybe"
           if ["iframe", "source"].include?(node.name)
             node["data-media-id"] = media_id
             if node["data-is-media-attachment"]
               node.delete("data-is-media-attachment")
-              return media_attachment_iframe_url(file.id, node["data-media-type"])
+              return media_attachment_iframe_url(file["id"], node["data-media-type"])
             else
               return media_iframe_url(media_id, node["data-media-type"])
             end
