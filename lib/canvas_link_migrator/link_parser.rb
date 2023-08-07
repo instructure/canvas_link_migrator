@@ -181,8 +181,8 @@ module CanvasLinkMigrator
 
     # returns a hash with resolution status and data to hold onto if unresolved
     def parse_url(url, node, attr)
-      if url =~ /wiki_page_migration_id=(.*)/
-        unresolved(:wiki_page, migration_id: $1)
+      if url =~ /wiki_page_migration_id=([^?]*)(\?.*)?/
+        unresolved(:wiki_page, migration_id: $1, query: $2)
       elsif url =~ /discussion_topic_migration_id=(.*)/
         unresolved(:discussion_topic, migration_id: $1)
       elsif url =~ %r{\$CANVAS_COURSE_REFERENCE\$/modules/items/([^?]*)(\?.*)?}
