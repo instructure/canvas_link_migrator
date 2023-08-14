@@ -124,6 +124,12 @@ describe CanvasLinkMigrator::ImportedHtmlConverter do
       expect(@converter.convert_exported_html(test_string)).to eq([%(<a href="#{@path}pages/slug-a">Test Wiki Page</a>), nil])
     end
 
+    it "converts a wiki reference by migration id and includes queries" do
+      test_string = %(<a href="wiki_page_migration_id=A?foo=bar">Test Wiki Page</a>)
+
+      expect(@converter.convert_exported_html(test_string)).to eq([%(<a href="#{@path}pages/slug-a?foo=bar">Test Wiki Page</a>), nil])
+    end
+
     it "converts a discussion reference by migration id" do
       test_string = %(<a href="discussion_topic_migration_id=G">Test topic</a>)
 
