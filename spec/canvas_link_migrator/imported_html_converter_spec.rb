@@ -37,6 +37,13 @@ describe CanvasLinkMigrator::ImportedHtmlConverter do
       expect(bad_links).to be_nil
     end
 
+    it "converts a wiki reference with migration id" do
+      test_string = %(<a href="%24WIKI_REFERENCE%24/wiki/A?query=blah">Test Wiki Page</a>)
+      html, bad_links = @converter.convert_exported_html(test_string)
+      expect(html).to eq %(<a href="#{@path}pages/slug-a?query=blah">Test Wiki Page</a>)
+      expect(bad_links).to be_nil
+    end
+
     context "when course attachments exist" do
       subject { @converter.convert_exported_html(test_string) }
 
@@ -122,12 +129,6 @@ describe CanvasLinkMigrator::ImportedHtmlConverter do
       test_string = %(<a href="wiki_page_migration_id=A">Test Wiki Page</a>)
 
       expect(@converter.convert_exported_html(test_string)).to eq([%(<a href="#{@path}pages/slug-a">Test Wiki Page</a>), nil])
-    end
-
-    it "converts a wiki reference by migration id and includes queries" do
-      test_string = %(<a href="wiki_page_migration_id=A?foo=bar">Test Wiki Page</a>)
-
-      expect(@converter.convert_exported_html(test_string)).to eq([%(<a href="#{@path}pages/slug-a?foo=bar">Test Wiki Page</a>), nil])
     end
 
     it "converts a discussion reference by migration id" do
