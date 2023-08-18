@@ -38,7 +38,7 @@ describe CanvasLinkMigrator::ImportedHtmlConverter do
     end
 
     it "converts a wiki reference with migration id" do
-      test_string = %(<a href="%24WIKI_REFERENCE%24/wiki/A?query=blah">Test Wiki Page</a>)
+      test_string = %(<a href="%24WIKI_REFERENCE%24/pages/A?query=blah">Test Wiki Page</a>)
       html, bad_links = @converter.convert_exported_html(test_string)
       expect(html).to eq %(<a href="#{@path}pages/slug-a?query=blah">Test Wiki Page</a>)
       expect(bad_links).to be_nil
