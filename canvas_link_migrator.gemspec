@@ -2,9 +2,9 @@
 
 Gem::Specification.new do |spec|
   spec.name          = "canvas_link_migrator"
-  spec.version       = "0.2.0"
-  spec.authors       = ["Mysti Lilla", "James Logan"]
-  spec.email         = ["mysti@instructure.com", "james.logan@instructure.com"]
+  spec.version       = "0.2.1"
+  spec.authors       = ["Mysti Lilla", "James Logan", "Sarah Gerard"]
+  spec.email         = ["mysti@instructure.com", "james.logan@instructure.com", "sarah.gerard@instructure.com"]
   spec.summary       = "Instructure gem for migrating Canvas style rich content"
 
   spec.files         = Dir.glob("{lib,spec}/**/*") + %w[test.sh]
