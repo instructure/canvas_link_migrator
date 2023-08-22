@@ -68,7 +68,8 @@ module CanvasLinkMigrator
         type = "pages" if type == "wiki"
         if type == "pages"
           query = resolve_module_item_query(nil, link[:query])
-          link[:new_value] = "#{context_path}/pages/#{migration_id}#{query}"
+          linked_wiki_url = @migration_id_converter.convert_wiki_page_migration_id_to_slug(migration_id) || migration_id
+          link[:new_value] = "#{context_path}/pages/#{linked_wiki_url}#{query}"
         elsif type == "attachments"
           att_id = @migration_id_converter.convert_attachment_migration_id(migration_id)
           if att_id
