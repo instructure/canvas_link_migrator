@@ -92,7 +92,7 @@ module CanvasLinkMigrator
         # see LinkParser for details
         rel_path = link[:rel_path]
         node = Nokogiri::HTML5.fragment(link[:old_value]).children.first
-        new_url = resolve_media_comment_data(node, rel_path)
+        new_url = resolve_media_comment_data(node, rel_path, link[:media_attachment])
         new_url ||= resolve_relative_file_url(rel_path)
 
         unless new_url
@@ -122,12 +122,15 @@ module CanvasLinkMigrator
           # context prepended to the URL. This prevents
           # redirects to non cross-origin friendly urls
           # during a file fetch
-          if rest.include?("icon_maker_icon=1")
-            link[:new_value] = "/files/#{file_id}#{rest}"
-          else
-            link[:new_value] = "#{context_path}/files/#{file_id}#{rest}"
-            link[:new_value] = "/media_objects_iframe?mediahref=#{link[:new_value]}" if link[:in_media_iframe]
-          end
+          link[:new_value] = if rest.include?("icon_maker_icon=1")
+                               "/files/#{file_id}#{rest}"
+                             elsif link[:in_media_iframe] && link[:media_attachment]
+                               "/media_attachments_iframe/#{file_id}#{rest}"
+                             elsif link[:in_media_iframe]
+                               "/media_objects_iframe?mediahref=#{link[:new_value]}"
+                             else
+                               "#{context_path}/files/#{file_id}#{rest}"
+                             end
         end
       else
         raise "unrecognized link_type (#{link[:link_type]}) in unresolved link"
@@ -223,14 +226,13 @@ module CanvasLinkMigrator
       url
     end
 
-    def resolve_media_comment_data(node, rel_path)
+    def resolve_media_comment_data(node, rel_path, media_attachment)
       if (file = find_file_in_context(rel_path[/^[^?]+/])) # strip query string for this search
         media_id = file.try(:media_object)&.media_id || file["media_entry_id"]
         if media_id && media_id != "maybe"
           if ["iframe", "source"].include?(node.name)
             node["data-media-id"] = media_id
-            if node["data-is-media-attachment"]
-              node.delete("data-is-media-attachment")
+            if media_attachment
               return media_attachment_iframe_url(file["id"], node["data-media-type"])
             else
               return media_iframe_url(media_id, node["data-media-type"])

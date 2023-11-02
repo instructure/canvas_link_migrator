@@ -19,6 +19,7 @@
 
 require "nokogiri"
 require "digest"
+require "addressable"
 
 module CanvasLinkMigrator
   class LinkParser
@@ -181,6 +182,12 @@ module CanvasLinkMigrator
 
     # returns a hash with resolution status and data to hold onto if unresolved
     def parse_url(url, node, attr)
+      url = Addressable::URI.parse(url)
+      query_values = url.query_values || {}
+      media_attachment = query_values.delete("media_attachment") == "true"
+      url.query_values = query_values.present? ? query_values : nil
+      url = url.to_s
+
       if url =~ /wiki_page_migration_id=(.*)/
         unresolved(:wiki_page, migration_id: $1)
       elsif url =~ /discussion_topic_migration_id=(.*)/
@@ -191,7 +198,8 @@ module CanvasLinkMigrator
         unresolved(:file_ref,
                    migration_id: $1,
                    rest: $2,
-                   in_media_iframe: attr == "src" && ["iframe", "source"].include?(node.name) && node["data-media-id"])
+                   in_media_iframe: attr == "src" && ["iframe", "source"].include?(node.name) && node["data-media-id"],
+                   media_attachment: media_attachment)
       elsif url =~ %r{(?:\$CANVAS_OBJECT_REFERENCE\$|\$WIKI_REFERENCE\$)/([^/]*)/([^?]*)(\?.*)?}
         if KNOWN_REFERENCE_TYPES.include?($1)
           unresolved(:object, type: $1, migration_id: $2, query: $3)
@@ -207,7 +215,7 @@ module CanvasLinkMigrator
         rel_path = URI::DEFAULT_PARSER.unescape($1)
         if (attr == "href" && node["class"]&.include?("instructure_inline_media_comment")) ||
            (attr == "src" && ["iframe", "source"].include?(node.name) && node["data-media-id"])
-          unresolved(:media_object, rel_path: rel_path)
+          unresolved(:media_object, rel_path: rel_path, media_attachment: media_attachment)
         else
           unresolved(:file, rel_path: rel_path)
         end

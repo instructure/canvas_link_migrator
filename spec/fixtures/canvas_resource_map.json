@@ -2,7 +2,9 @@
   "attachment_path_id_lookup": {
     "subfolder/test.png": "G",
     "subfolder/with a space/test.png": "F",
+    "subfolder/with a space/yodawg.mov": "I",
     "subfolder/withCapital/test.png": "migration_id!",
+    "lolcat.mp3": "H",
     "test.png": "E"
   },
   "contains_migration_ids": true,
@@ -66,12 +68,30 @@
       },
       "G": {
         "destination": {
-          "id": "7",
-          "media_entry_id": "m-stuff"
+          "id": "7"
         },
         "source": {
-          "id": "2",
-          "media_entry_id": "m-stuff"
+          "id": "2"
+        }
+      },
+      "H": {
+        "destination": {
+          "id": "8",
+          "media_entry_id": "m-lolcat"
+        },
+        "source": {
+          "id": "3",
+          "media_entry_id": "m-lolcat"
+        }
+      },
+      "I": {
+        "destination": {
+          "id": "9",
+          "media_entry_id": "m-yodawg"
+        },
+        "source": {
+          "id": "4",
+          "media_entry_id": "m-yodawg"
         }
       }
     },
