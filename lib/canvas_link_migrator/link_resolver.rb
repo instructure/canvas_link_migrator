@@ -122,15 +122,14 @@ module CanvasLinkMigrator
           # context prepended to the URL. This prevents
           # redirects to non cross-origin friendly urls
           # during a file fetch
-          link[:new_value] = if rest.include?("icon_maker_icon=1")
-                               "/files/#{file_id}#{rest}"
-                             elsif link[:in_media_iframe] && link[:media_attachment]
-                               "/media_attachments_iframe/#{file_id}#{rest}"
-                             elsif link[:in_media_iframe]
-                               "/media_objects_iframe?mediahref=#{link[:new_value]}"
-                             else
-                               "#{context_path}/files/#{file_id}#{rest}"
-                             end
+          if rest.include?("icon_maker_icon=1")
+            link[:new_value] = "/files/#{file_id}#{rest}"
+          elsif link[:in_media_iframe] && link[:media_attachment]
+            link[:new_value] = "/media_attachments_iframe/#{file_id}#{rest}"
+          else
+            link[:new_value] = "#{context_path}/files/#{file_id}#{rest}"
+            link[:new_value] = "/media_objects_iframe?mediahref=#{link[:new_value]}" if link[:in_media_iframe]
+          end
         end
       else
         raise "unrecognized link_type (#{link[:link_type]}) in unresolved link"

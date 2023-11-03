@@ -182,11 +182,13 @@ module CanvasLinkMigrator
 
     # returns a hash with resolution status and data to hold onto if unresolved
     def parse_url(url, node, attr)
-      url = Addressable::URI.parse(url)
-      query_values = url.query_values || {}
-      media_attachment = query_values.delete("media_attachment") == "true"
-      url.query_values = query_values.present? ? query_values : nil
-      url = url.to_s
+      parsed_url = Addressable::URI.parse(url)
+      query_values = parsed_url.query_values
+      media_attachment = query_values.try(:delete, "media_attachment") == "true"
+      if media_attachment
+        parsed_url.query_values = query_values.present? ? query_values : nil
+        url = Addressable::URI.unencode(parsed_url)
+      end
 
       if url =~ /wiki_page_migration_id=(.*)/
         unresolved(:wiki_page, migration_id: $1)

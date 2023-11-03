@@ -240,6 +240,12 @@ describe CanvasLinkMigrator::ImportedHtmlConverter do
       expect(@converter.convert_exported_html(test_string)).to eq([converted_string, nil])
     end
 
+    it "converts mediahref iframes" do
+      test_string = %(<iframe data-media-type="video" src="/media_objects_iframe?mediahref=$CANVAS_COURSE_REFERENCE$/file_ref/I/download" data-media-id="m-yodawg"></iframe>)
+      converted_string = %(<iframe data-media-type="video" src="/media_objects_iframe?mediahref=/courses/2/files/9/download" data-media-id="m-yodawg"></iframe>)
+      expect(@converter.convert_exported_html(test_string)).to eq([converted_string, nil])
+    end
+
     it "leaves source tags without data-media-id alone" do
       test_string = %(<video style="width: 400px; height: 225px; display: inline-block;" title="this is a non-canvas video" allowfullscreen="allowfullscreen" allow="fullscreen"><source src="http://www.example.com/video.mov"></video>)
       expect(@converter.convert_exported_html(test_string)).to eq([test_string, nil])
