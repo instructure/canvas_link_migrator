@@ -24,3 +24,4 @@ docker compose run --rm -v $PWD:/usr/src/app app bash
 > bundle exec rspec
 > gem build canvas_link_migrator.gemspec
 ```
+stuff
