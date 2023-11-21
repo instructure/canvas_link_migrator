@@ -166,6 +166,10 @@ module CanvasLinkMigrator
         else
           result[:old_value] = node[attr]
           result[:placeholder] = placeholder(result[:old_value])
+          # replace the inner html of an anchor tag if it matches the href
+          if node.name == "a" && attr == "href" && node["href"] == node.inner_html.delete("\n").strip
+            node.inner_html = result[:placeholder]
+          end
           node[attr] = result[:placeholder]
         end
         add_unresolved_link(result, item_type, mig_id, field)
@@ -177,7 +181,7 @@ module CanvasLinkMigrator
     end
 
     def resolved(new_url = nil)
-      { resolved: true, new_url: new_url }
+      { resolved: true, new_url: new_url}
     end
 
     # returns a hash with resolution status and data to hold onto if unresolved
@@ -186,7 +190,7 @@ module CanvasLinkMigrator
       query_values = parsed_url.query_values
       media_attachment = query_values.try(:delete, "media_attachment") == "true"
       if media_attachment
-        parsed_url.query_values = query_values.present? ? query_values : nil
+        parsed_url.query_values = query_values.presence || nil
         url = Addressable::URI.unencode(parsed_url)
       end
 
