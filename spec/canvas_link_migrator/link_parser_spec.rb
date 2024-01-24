@@ -42,5 +42,10 @@ describe CanvasLinkMigrator::LinkParser do
       expect(doc.at_css('a')['href']).to include("LINK.PLACEHOLDER")
       expect(doc.at_css('a').inner_html).not_to include("LINK.PLACEHOLDER")
     end
+
+    it "doesn't convert inner html of anchor tags if unnecessary" do
+      doc = Nokogiri::HTML5.fragment("<a href=\"https://what:10.1111/HFP.0b013e31828df26\">broken link</a>")
+      expect{ parser.convert_link(doc.at_css('a'), "href", "wiki_page", "migrationid", "") }.not_to raise_error
+    end
   end
 end
