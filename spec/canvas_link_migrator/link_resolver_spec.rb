@@ -33,6 +33,12 @@ describe CanvasLinkMigrator::LinkResolver do
       expect(link[:new_value]).to eq("/courses/2/pages/slug-a?foo=bar")
     end
 
+    it "converts wiki_pages links with pages in resource map" do
+      link = { link_type: :wiki_page, migration_id: "A", query: "?foo=bar" }
+      resolver(JSON.parse(File.read("spec/fixtures/canvas_resource_map_pages.json"))).resolve_link!(link)
+      expect(link[:new_value]).to eq("/courses/2/pages/slug-a?foo=bar")
+    end
+
     it "converts module_item links" do
       link = { link_type: :module_item, migration_id: "C", query: "?foo=bar" }
       resolver.resolve_link!(link)

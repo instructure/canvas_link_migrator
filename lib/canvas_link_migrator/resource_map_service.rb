@@ -69,7 +69,7 @@ module CanvasLinkMigrator
 
     # Looks up a wiki page slug for a migration id
     def convert_wiki_page_migration_id_to_slug(migration_id)
-      resources.dig("wiki_pages", migration_id, "destination", "url")
+      resources.dig("wiki_pages", migration_id, "destination", "url") || resources.dig("pages", migration_id, "destination", "url")
     end
 
     # looks up a discussion topic

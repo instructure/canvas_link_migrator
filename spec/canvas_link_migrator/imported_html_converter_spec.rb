@@ -25,7 +25,7 @@ describe CanvasLinkMigrator::ImportedHtmlConverter do
   # tests link_parser and link_resolver
 
   describe ".convert" do
-    before do
+    before(:each) do
       @path = "/courses/2/"
       @converter = CanvasLinkMigrator::ImportedHtmlConverter.new(resource_map: JSON.parse(File.read("spec/fixtures/canvas_resource_map.json")))
     end
@@ -42,6 +42,24 @@ describe CanvasLinkMigrator::ImportedHtmlConverter do
       html, bad_links = @converter.convert_exported_html(test_string)
       expect(html).to eq %(<a href="#{@path}pages/slug-a?query=blah">Test Wiki Page</a>)
       expect(bad_links).to be_nil
+    end
+
+    context "when pages in resource map but no wiki_pages" do
+      before(:each) do
+        @converter = CanvasLinkMigrator::ImportedHtmlConverter.new(resource_map: JSON.parse(File.read("spec/fixtures/canvas_resource_map_pages.json")))
+      end
+
+        it "converts a wiki reference with migration id" do
+          test_string = %(<a href="%24WIKI_REFERENCE%24/pages/A?query=blah">Test Wiki Page</a>)
+          html, bad_links = @converter.convert_exported_html(test_string)
+          expect(html).to eq %(<a href="#{@path}pages/slug-a?query=blah">Test Wiki Page</a>)
+          expect(bad_links).to be_nil
+        end
+
+        it "converts a wiki reference by migration id" do
+          test_string = %(<a href="wiki_page_migration_id=A">Test Wiki Page</a>)
+          expect(@converter.convert_exported_html(test_string)).to eq([%(<a href="#{@path}pages/slug-a">Test Wiki Page</a>), nil])
+        end
     end
 
     context "when course attachments exist" do
