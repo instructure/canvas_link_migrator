@@ -29,6 +29,12 @@ describe CanvasLinkMigrator::LinkParser do
   end
 
   describe "convert_link" do
+    it "marks target=_blank anchor tags" do
+      doc = Nokogiri::HTML5.fragment("<a target=\"_blank\"></a>")
+      parsed = parser.parse_url("$CANVAS_COURSE_REFERENCE$/file_ref/whatevs", doc.at_css('a'), "href")
+      expect(parsed[:target_blank]).to be true
+    end
+
     it "converts inner html of anchor tags when appropriate" do
       doc = Nokogiri::HTML5.fragment("<a href=\"$WIKI_REFERENCE$/pages/1\">$WIKI_REFERENCE$/pages/1</a>")
       parser.convert_link(doc.at_css('a'), "href","wiki_page", "migrationid", "")

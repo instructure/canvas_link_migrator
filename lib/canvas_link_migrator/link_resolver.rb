@@ -116,13 +116,14 @@ module CanvasLinkMigrator
       when :file_ref
         file_id = @migration_id_converter.convert_attachment_migration_id(link[:migration_id])
         if file_id
-          rest = link[:rest].presence || "/preview"
+          rest = link[:rest].presence
+          rest ||= "/preview" unless link[:target_blank]
 
           # Icon Maker files should not have the course
           # context prepended to the URL. This prevents
           # redirects to non cross-origin friendly urls
           # during a file fetch
-          if rest.include?("icon_maker_icon=1")
+          if rest&.include?("icon_maker_icon=1")
             link[:new_value] = "/files/#{file_id}#{rest}"
           elsif link[:in_media_iframe] && link[:media_attachment]
             link[:new_value] = "/media_attachments_iframe/#{file_id}#{rest}"
