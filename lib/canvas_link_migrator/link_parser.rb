@@ -210,7 +210,9 @@ module CanvasLinkMigrator
                    migration_id: $1,
                    rest: $2,
                    in_media_iframe: attr == "src" && ["iframe", "source"].include?(node.name) && node["data-media-id"],
-                   media_attachment: media_attachment)
+                   media_attachment: media_attachment,
+                   target_blank: node['target'] == "_blank" && node.name == "a" && attr == "href"
+        )
       elsif url =~ %r{(?:\$CANVAS_OBJECT_REFERENCE\$|\$WIKI_REFERENCE\$)/([^/]*)/([^?]*)(\?.*)?}
         if KNOWN_REFERENCE_TYPES.include?($1)
           unresolved(:object, type: $1, migration_id: $2, query: $3)

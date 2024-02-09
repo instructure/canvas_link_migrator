@@ -51,6 +51,12 @@ describe CanvasLinkMigrator::LinkResolver do
       expect(link[:new_value]).to eq("/courses/2/files/6/preview")
     end
 
+    it "does not suffix /preview to target blank links" do
+      link = { link_type: :file_ref, target_blank: true, migration_id: "F" }
+      resolver.resolve_link!(link)
+      expect(link[:new_value]).to eq("/courses/2/files/6")
+    end
+
     it "converts attachment urls" do
       link = { link_type: :object, type: "attachments", migration_id: "E", query: "?foo=bar" }
       resolver.resolve_link!(link)
