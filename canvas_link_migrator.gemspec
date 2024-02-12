@@ -6,6 +6,9 @@ Gem::Specification.new do |spec|
   spec.authors       = ["Mysti Lilla", "James Logan", "Sarah Gerard", "Math Costa"]
   spec.email         = ["mysti@instructure.com", "james.logan@instructure.com", "sarah.gerard@instructure.com", "luis.oliveira@instructure.com"]
   spec.summary       = "Instructure gem for migrating Canvas style rich content"
+  spec.metadata      = {
+    "source_code_uri" => "https://github.com/instructure/canvas_link_migrator"
+  }
 
   spec.files         = Dir.glob("{lib,spec}/**/*") + %w[test.sh]
   spec.executables   = spec.files.grep(%r{^bin/}) { |f| File.basename(f) }
