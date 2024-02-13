@@ -87,12 +87,12 @@ describe CanvasLinkMigrator::ImportedHtmlConverter do
       end
 
       it "leaves relative user attachments alone" do
-        test_string = %{<p> This is an image: <img src="/users/1/files/1/preview?verifier=2Zn2diT03FhIhPL21GnVkTyebw4FCy62DHM8avI9" alt="some_image"></p>}
+        test_string = %{<p> This is an image: <img src="/users/1/files/1/preview?verifier=someVerifier" alt="some_image"></p>}
         expect(@converter.convert_exported_html(test_string)).to eq([test_string, nil])
       end
 
       it "leaves absolute user attachments alone" do
-        test_string = %{<p> This is an image: <img src="http://mycanvas.com/users/1/files/1/preview?verifier=2Zn2diT03FhIhPL21GnVkTyebw4FCy62DHM8avI9" alt="some_image"></p>}
+        test_string = %{<p> This is an image: <img src="http://mycanvas.com/users/1/files/1/preview?verifier=someVerifier" alt="some_image"></p>}
         expect(@converter.convert_exported_html(test_string)).to eq([test_string, nil])
       end
 
