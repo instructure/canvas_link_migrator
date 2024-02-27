@@ -108,6 +108,8 @@ module CanvasLinkMigrator
       when :file
         rel_path = link[:rel_path]
         new_url = resolve_relative_file_url(rel_path)
+        # leave user urls alone
+        new_url ||= rel_path if is_relative_user_url(rel_path)
         unless new_url
           new_url = missing_relative_file_url(rel_path)
           link[:missing_url] = new_url
@@ -254,6 +256,10 @@ module CanvasLinkMigrator
         node.delete("style")
         nil
       end
+    end
+
+    def is_relative_user_url(rel_path)
+      rel_path.start_with?("/users/")
     end
   end
 end

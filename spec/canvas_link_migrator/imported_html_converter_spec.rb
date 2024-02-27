@@ -86,6 +86,16 @@ describe CanvasLinkMigrator::ImportedHtmlConverter do
         expect(@converter.convert_exported_html(test_string)).to eq([%{<p>This is an image: <br><img src="#{@path}files/6/preview" alt=":("></p>}, nil])
       end
 
+      it "leaves relative user attachments alone" do
+        test_string = %{<p> This is an image: <img src="/users/1/files/1/preview?verifier=someVerifier" alt="some_image"></p>}
+        expect(@converter.convert_exported_html(test_string)).to eq([test_string, nil])
+      end
+
+      it "leaves absolute user attachments alone" do
+        test_string = %{<p> This is an image: <img src="http://mycanvas.com/users/1/files/1/preview?verifier=someVerifier" alt="some_image"></p>}
+        expect(@converter.convert_exported_html(test_string)).to eq([test_string, nil])
+      end
+
       it "finds an attachment by path" do
         test_string = %{<p>This is an image: <br /><img src="%24IMS_CC_FILEBASE%24/test.png" alt=":(" /></p>}
 
