@@ -82,7 +82,7 @@ module CanvasLinkMigrator
 
     def convert(html, item_type, mig_id, field, remove_outer_nodes_if_one_child: nil)
       mig_id = mig_id.to_s
-      doc = Nokogiri::HTML5(html || "")
+      doc = Nokogiri::HTML5.fragment(html || "")
 
       # Replace source tags with iframes
       doc.search("source[data-media-id]").each do |source|
@@ -94,24 +94,36 @@ module CanvasLinkMigrator
         source.remove
       end
 
+      # Replace old style media anchor tags with iframes
+      doc.search("a[id*='media_comment_']").each do |media_node|
+        media_node.name = "iframe"
+        # smallest accepted size for iframe since we don't have the size available for these
+        media_node["style"] = "width: 320px; height: 240px; display: inline-block;"
+        media_node["title"] = media_node.text
+        media_node.child&.remove
+        media_node["data-media-type"] = media_node["class"].match(/(audio|video)_comment/)[1]
+        media_node["src"] = media_node["href"]
+        media_node.delete("href")
+        media_node["allowfullscreen"] = "allowfullscreen"
+        media_node["allow"] = "fullscreen"
+        media_node["data-media-id"] = media_node["id"].sub("media_comment_", "")
+      end
+
       doc.search("*").each do |node|
         LINK_ATTRS.each do |attr|
           convert_link(node, attr, item_type, mig_id, field)
         end
       end
 
-      node = doc.at_css("body")
-      return "" unless node
-
       if remove_outer_nodes_if_one_child
-        while node.children.size == 1 && node.child.child
-          break unless CONTAINER_TYPES.member?(node.child.name) && node.child.attributes.blank?
+        while doc.children.size == 1 && doc.child.child
+          break unless CONTAINER_TYPES.member?(doc.child.name) && doc.child.attributes.blank?
 
-          node = node.child
+          doc = doc.child
         end
       end
 
-      node.inner_html
+      doc.inner_html
     rescue Nokogiri::SyntaxError
       ""
     end
@@ -189,16 +201,12 @@ module CanvasLinkMigrator
       { resolved: true, new_url: new_url}
     end
 
+    def media_params(type)
+      "?type=#{type}&embedded=true"
+    end
+
     # returns a hash with resolution status and data to hold onto if unresolved
     def parse_url(url, node, attr)
-      parsed_url = Addressable::URI.parse(url)
-      query_values = parsed_url.query_values
-      media_attachment = query_values.try(:delete, "media_attachment") == "true"
-      if media_attachment
-        parsed_url.query_values = query_values.presence || nil
-        url = Addressable::URI.unencode(parsed_url)
-      end
-
       if url =~ /wiki_page_migration_id=(.*)/
         unresolved(:wiki_page, migration_id: $1)
       elsif url =~ /discussion_topic_migration_id=(.*)/
@@ -206,11 +214,12 @@ module CanvasLinkMigrator
       elsif url =~ %r{\$CANVAS_COURSE_REFERENCE\$/modules/items/([^?]*)(\?.*)?}
         unresolved(:module_item, migration_id: $1, query: $2)
       elsif url =~ %r{\$CANVAS_COURSE_REFERENCE\$/file_ref/([^/?#]+)(.*)}
+        in_media_iframe = (attr == "src" && ["iframe", "source"].include?(node.name) && node["data-media-id"])
+        rest = in_media_iframe ? media_params(node["data-media-type"]) : $2
         unresolved(:file_ref,
                    migration_id: $1,
-                   rest: $2,
-                   in_media_iframe: attr == "src" && ["iframe", "source"].include?(node.name) && node["data-media-id"],
-                   media_attachment: media_attachment,
+                   rest: rest,
+                   in_media_iframe: in_media_iframe,
                    target_blank: node['target'] == "_blank" && node.name == "a" && attr == "href"
         )
       elsif url =~ %r{(?:\$CANVAS_OBJECT_REFERENCE\$|\$WIKI_REFERENCE\$)/([^/]*)/([^?]*)(\?.*)?}
@@ -223,19 +232,17 @@ module CanvasLinkMigrator
         end
       elsif url =~ %r{\$CANVAS_COURSE_REFERENCE\$/(.*)}
         resolved("#{@migration_query_service.context_path}/#{$1}")
-
       elsif url =~ %r{\$IMS(?:-|_)CC(?:-|_)FILEBASE\$/(.*)}
         rel_path = URI::DEFAULT_PARSER.unescape($1)
         if (attr == "href" && node["class"]&.include?("instructure_inline_media_comment")) ||
            (attr == "src" && ["iframe", "source"].include?(node.name) && node["data-media-id"])
-          unresolved(:media_object, rel_path: rel_path, media_attachment: media_attachment)
+          unresolved(:media_object, rel_path: rel_path)
         else
           unresolved(:file, rel_path: rel_path)
         end
-      elsif (attr == "href" && node["class"]&.include?("instructure_inline_media_comment")) ||
-            (attr == "src" && ["iframe", "source"].include?(node.name) && node["data-media-id"])
-        # Course copy media reference, leave it alone
-        resolved
+      elsif (attr == "src" && ["iframe", "source"].include?(node.name) && node["data-media-id"])
+        # media_objects_iframe course copy reference without an attachment id, change to media_attachments_iframe
+        unresolved(:media_object, rel_path: node["src"])
       elsif @migration_query_service.supports_embedded_images && attr == "src" && (info_match = url.match(%r{\Adata:(?<mime_type>[-\w]+/[-\w+.]+)?;base64,(?<image>.*)}m))
         result = @migration_query_service.link_embedded_image(info_match)
         if result[:resolved]

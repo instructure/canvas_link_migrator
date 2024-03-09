@@ -92,11 +92,11 @@ module CanvasLinkMigrator
         # see LinkParser for details
         rel_path = link[:rel_path]
         node = Nokogiri::HTML5.fragment(link[:old_value]).children.first
-        new_url = resolve_media_comment_data(node, rel_path, link[:media_attachment])
+        new_url = resolve_media_data(node, rel_path)
         new_url ||= resolve_relative_file_url(rel_path)
 
         unless new_url
-          new_url ||= missing_relative_file_url(rel_path)
+          new_url = rel_path.include?("#{context_path}/file_contents") ? rel_path : missing_relative_file_url(rel_path)
           link[:missing_url] = new_url
         end
         if ["iframe", "source"].include?(node.name)
@@ -127,12 +127,13 @@ module CanvasLinkMigrator
           # during a file fetch
           if rest&.include?("icon_maker_icon=1")
             link[:new_value] = "/files/#{file_id}#{rest}"
-          elsif link[:in_media_iframe] && link[:media_attachment]
+          elsif link[:in_media_iframe]
             link[:new_value] = "/media_attachments_iframe/#{file_id}#{rest}"
           else
             link[:new_value] = "#{context_path}/files/#{file_id}#{rest}"
-            link[:new_value] = "/media_objects_iframe?mediahref=#{link[:new_value]}" if link[:in_media_iframe]
           end
+        else
+          link[:missing_url] = link[:old_value].partition("$CANVAS_COURSE_REFERENCE$").last
         end
       else
         raise "unrecognized link_type (#{link[:link_type]}) in unresolved link"
@@ -216,40 +217,20 @@ module CanvasLinkMigrator
       new_url
     end
 
-    def media_iframe_url(media_id, media_type = nil)
-      url = "/media_objects_iframe/#{media_id}"
-      url += "?type=#{media_type}" if media_type.present?
-      url
-    end
-
     def media_attachment_iframe_url(file_id, media_type = nil)
-      url = "/media_attachments_iframe/#{file_id}"
-      url += "?type=#{media_type}" if media_type.present?
+      url = "/media_attachments_iframe/#{file_id}?embedded=true"
+      url += "&type=#{media_type}" if media_type.present?
       url
     end
 
-    def resolve_media_comment_data(node, rel_path, media_attachment)
-      if (file = find_file_in_context(rel_path[/^[^?]+/])) # strip query string for this search
+    def resolve_media_data(node, rel_path)
+      if rel_path && (file = find_file_in_context(rel_path[/^[^?]+/])) # strip query string for this search
         media_id = file.try(:media_object)&.media_id || file["media_entry_id"]
-        if media_id && media_id != "maybe"
-          if ["iframe", "source"].include?(node.name)
-            node["data-media-id"] = media_id
-            if media_attachment
-              return media_attachment_iframe_url(file["id"], node["data-media-type"])
-            else
-              return media_iframe_url(media_id, node["data-media-type"])
-            end
-          else
-            node["id"] = "media_comment_#{media_id}"
-            return "/media_objects/#{media_id}"
-          end
-        end
-      end
-
-      if node["id"] && node["id"] =~ /\Amedia_comment_(.+)\z/
-        "/media_objects/#{$1}"
+        node["data-media-id"] = media_id # safe to delete?
+        media_attachment_iframe_url(file["id"], node["data-media-type"])
       elsif node["data-media-id"].present?
-        media_iframe_url(node["data-media-id"], node["data-media-type"])
+        file = @migration_id_converter.lookup_attachment_by_media_id(node["data-media-id"])
+        file ? media_attachment_iframe_url(file["id"], node["data-media-type"]) : nil
       else
         node.delete("class")
         node.delete("id")
