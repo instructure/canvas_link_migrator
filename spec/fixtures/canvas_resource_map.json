@@ -5,7 +5,8 @@
     "subfolder/with a space/yodawg.mov": "I",
     "subfolder/withCapital/test.png": "migration_id!",
     "lolcat.mp3": "H",
-    "test.png": "E"
+    "test.png": "E",
+    "media_objects/0_bq09qam2": "F"
   },
   "contains_migration_ids": true,
   "destination_course": "2",
@@ -59,11 +60,11 @@
       "F": {
         "destination": {
           "id": "6",
-          "media_entry_id": "m-stuff"
+          "media_entry_id": "0_bq09qam2"
         },
         "source": {
           "id": "4",
-          "media_entry_id": "m-stuff"
+          "media_entry_id": "0_bq09qam2"
         }
       },
       "G": {

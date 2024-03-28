@@ -210,67 +210,114 @@ describe CanvasLinkMigrator::ImportedHtmlConverter do
       expect(bad_links[0]).to include({ link_type: :file, missing_url: "/courses/2/file_contents/course%20files/relative/path/to/file%20with%20space.html" })
     end
 
-    it "preserves media comment links" do
+    it "changes old media URL types into media_attachments_iframe" do
       test_string = <<~HTML.strip
         <p>
           with media object url: <a id="media_comment_m-stuff" class="instructure_inline_media_comment video_comment" href="/media_objects/m-stuff">this is a media comment</a>
           with file content url: <a id="media_comment_0_bq09qam2" class="instructure_inline_media_comment video_comment" href="/courses/2/file_contents/course%20files/media_objects/0_bq09qam2">this is a media comment</a>
+          with mediahref url: <iframe data-media-type="video" src="/media_objects_iframe?mediahref=$CANVAS_COURSE_REFERENCE$/file_ref/I/download" data-media-id="m-yodawg"></iframe>
         </p>
       HTML
 
-      expect(@converter.convert_exported_html(test_string)).to eq([test_string, nil])
+      expected_string = <<~HTML.strip
+        <p>
+          with media object url: <iframe id="media_comment_m-stuff" class="instructure_inline_media_comment video_comment" style="width: 320px; height: 240px; display: inline-block;" title="this is a media comment" data-media-type="video" src="/media_attachments_iframe/5?embedded=true&amp;type=video" allowfullscreen="allowfullscreen" allow="fullscreen" data-media-id="m-stuff"></iframe>
+          with file content url: <iframe id="media_comment_0_bq09qam2" class="instructure_inline_media_comment video_comment" style="width: 320px; height: 240px; display: inline-block;" title="this is a media comment" data-media-type="video" src="/media_attachments_iframe/6?embedded=true&amp;type=video" allowfullscreen="allowfullscreen" allow="fullscreen" data-media-id="0_bq09qam2"></iframe>
+          with mediahref url: <iframe data-media-type="video" src="/media_attachments_iframe/9?type=video&embedded=true" data-media-id="m-yodawg"></iframe>
+        </p>
+      HTML
+
+      expect(@converter.convert_exported_html(test_string)).to eq([expected_string, nil])
+    end
+
+    it "handles old media types where we can't find the file" do
+      test_string = <<~HTML.strip
+        <p>
+          with media object url: <a id="media_comment_m-stuff1" class="instructure_inline_media_comment video_comment" href="/media_objects/m-stuff1">this is a media comment</a>
+          with file content url: <a id="media_comment_0_bq09qam3" class="instructure_inline_media_comment video_comment" href="/courses/2/file_contents/course%20files/media_objects/0_bq09qam3">this is a media comment</a>
+          with mediahref url: <iframe data-media-type="video" src="/media_objects_iframe?mediahref=$CANVAS_COURSE_REFERENCE$/file_ref/yarg/download" data-media-id="m-yodawg"></iframe>
+        </p>
+      HTML
+
+      expected_string = <<~HTML.strip
+        <p>
+          with media object url: <iframe id="media_comment_m-stuff1" class="instructure_inline_media_comment video_comment" style="width: 320px; height: 240px; display: inline-block;" title="this is a media comment" data-media-type="video" src="/courses/2/file_contents/course%20files/media_objects/m-stuff1" allowfullscreen="allowfullscreen" allow="fullscreen" data-media-id="m-stuff1"></iframe>
+          with file content url: <iframe id="media_comment_0_bq09qam3" class="instructure_inline_media_comment video_comment" style="width: 320px; height: 240px; display: inline-block;" title="this is a media comment" data-media-type="video" src="/courses/2/file_contents/course%20files/media_objects/0_bq09qam3" allowfullscreen="allowfullscreen" allow="fullscreen" data-media-id="0_bq09qam3"></iframe>
+          with mediahref url: <iframe data-media-type="video" src="/media_objects_iframe?mediahref=$CANVAS_COURSE_REFERENCE$/file_ref/yarg/download" data-media-id="m-yodawg"></iframe>
+        </p>
+      HTML
+
+      expected_errors = [
+        {
+          link_type: :media_object,
+          missing_url: "/courses/2/file_contents/course%20files/media_objects/m-stuff1"
+        },
+        {
+          link_type: :media_object,
+          missing_url: "/courses/2/file_contents/course%20files/media_objects/0_bq09qam3"
+        },
+        {
+          link_type: :file_ref, missing_url: "/file_ref/yarg/download"
+        }
+      ]
+      expect(@converter.convert_exported_html(test_string)).to eq([expected_string, expected_errors])
     end
 
     it "handles and repair half broken media links" do
-      test_string = %(<p><a href="/courses/2/file_contents/%24IMS_CC_FILEBASE%24/#" class="instructure_inline_media_comment video_comment" id="media_comment_m-stuff">this is a media comment</a><br><br></p>)
-
-      expect(@converter.convert_exported_html(test_string)).to eq([%(<p><a href="/media_objects/m-stuff" class="instructure_inline_media_comment video_comment" id="media_comment_m-stuff">this is a media comment</a><br><br></p>), nil])
+      test_string = <<~HTML.strip
+        <p>
+          with wrong file in href: <a href="/courses/2/file_contents/%24IMS_CC_FILEBASE%24/#" class="instructure_inline_media_comment video_comment" id="media_comment_m-stuff">this is a media comment</a><br><br>
+          with no href: <a class="instructure_inline_media_comment video_comment" id="media_comment_m-stuff" href="#"></a><br><br>
+        </p>
+      HTML
+      expected_string = <<~HTML.strip
+        <p>
+          with wrong file in href: <iframe class="instructure_inline_media_comment video_comment" id="media_comment_m-stuff" style="width: 320px; height: 240px; display: inline-block;" title="this is a media comment" data-media-type="video" src="/media_attachments_iframe/5?embedded=true&amp;type=video" allowfullscreen="allowfullscreen" allow="fullscreen" data-media-id="m-stuff"></iframe><br><br>
+          with no href: <iframe class="instructure_inline_media_comment video_comment" id="media_comment_m-stuff" style="width: 320px; height: 240px; display: inline-block;" title="" data-media-type="video" src="/media_attachments_iframe/5?embedded=true&amp;type=video" allowfullscreen="allowfullscreen" allow="fullscreen" data-media-id="m-stuff"></iframe><br><br>
+        </p>
+      HTML
+      expect(@converter.convert_exported_html(test_string)).to eq([expected_string, nil])
     end
 
-    it "preserves new RCE media iframes" do
-      test_string = %(<iframe style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="video" src="/media_objects_iframe/m-stuff?type=video" allowfullscreen="allowfullscreen" allow="fullscreen" data-media-id="m-stuff"></iframe>)
-      expect(@converter.convert_exported_html(test_string)).to eq([test_string, nil])
+    it "converts old RCE media object iframes" do
+      test_string = %(<iframe style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="video" src="/media_objects_iframe/m-lolcat?type=video" allowfullscreen="allowfullscreen" allow="fullscreen" data-media-id="m-lolcat"></iframe>)
+      replacement_string = %(<iframe style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="video" src="/media_attachments_iframe/8?embedded=true&amp;type=video" allowfullscreen="allowfullscreen" allow="fullscreen" data-media-id="m-lolcat"></iframe>)
+      expect(@converter.convert_exported_html(test_string)).to eq([replacement_string, nil])
     end
 
     it "handles and repair half broken new RCE media iframes" do
-      test_string = %(<iframe style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="video" src="%24IMS_CC_FILEBASE%24/#" allowfullscreen="allowfullscreen" allow="fullscreen" data-media-id="m-abcde"></iframe>)
-      repaired_string = %(<iframe style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="video" src="/media_objects_iframe/m-abcde?type=video" allowfullscreen="allowfullscreen" allow="fullscreen" data-media-id="m-abcde"></iframe>)
+      test_string = %(<iframe style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="video" src="%24IMS_CC_FILEBASE%24/#" allowfullscreen="allowfullscreen" allow="fullscreen" data-media-id="m-lolcat"></iframe>)
+      repaired_string = %(<iframe style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="video" src="/media_attachments_iframe/8?embedded=true&amp;type=video" allowfullscreen="allowfullscreen" allow="fullscreen" data-media-id="m-lolcat"></iframe>)
       expect(@converter.convert_exported_html(test_string)).to eq([repaired_string, nil])
     end
 
     it "converts source tags to RCE media iframes" do
-      test_string = %(<video style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="video" allowfullscreen="allowfullscreen" allow="fullscreen" data-media-id="m-stuff"><source src="/media_objects_iframe/m-stuff?type=video" data-media-id="m-stuff" data-media-type="video"></video>)
-      converted_string = %(<iframe style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="video" allowfullscreen="allowfullscreen" allow="fullscreen" data-media-id="m-stuff" src="/media_objects_iframe/m-stuff?type=video"></iframe>)
+      test_string = %(<video style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="video" allowfullscreen="allowfullscreen" allow="fullscreen" data-media-id="m-lolcat"><source src="/media_objects_iframe/m-lolcat?type=video" data-media-id="m-lolcat" data-media-type="video"></video>)
+      converted_string = %(<iframe style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="video" allowfullscreen="allowfullscreen" allow="fullscreen" data-media-id="m-lolcat" src="/media_attachments_iframe/8?embedded=true&amp;type=video"></iframe>)
       expect(@converter.convert_exported_html(test_string)).to eq([converted_string, nil])
 
-      test_string = %(<audio style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="audio" data-media-id="m-stuff"><source src="/media_objects_iframe/m-stuff?type=audio" data-media-id="m-stuff" data-media-type="audio"></audio>)
-      converted_string = %(<iframe style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="audio" data-media-id="m-stuff" src="/media_objects_iframe/m-stuff?type=audio"></iframe>)
+      test_string = %(<audio style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="audio" data-media-id="m-yodawg"><source src="/media_objects_iframe/m-yodawg?type=audio" data-media-id="m-yodawg" data-media-type="audio"></audio>)
+      converted_string = %(<iframe style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="audio" data-media-id="m-yodawg" src="/media_attachments_iframe/9?embedded=true&amp;type=audio"></iframe>)
       expect(@converter.convert_exported_html(test_string)).to eq([converted_string, nil])
     end
 
     it "converts source tags to RCE media attachment iframes" do
       test_string = %(<video style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="video" allowfullscreen="allowfullscreen" allow="fullscreen" data-media-id="m-stuff"><source src="$IMS-CC-FILEBASE$/subfolder/with a space/yodawg.mov?canvas_=1&canvas_qs_type=video&canvas_qs_amp=&canvas_qs_embedded=true&media_attachment=true" data-media-id="m-stuff" data-media-type="video"></video>)
-      converted_string = %(<iframe style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="video" allowfullscreen="allowfullscreen" allow="fullscreen" data-media-id="m-yodawg" src="/media_attachments_iframe/9?type=video"></iframe>)
+      converted_string = %(<iframe style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="video" allowfullscreen="allowfullscreen" allow="fullscreen" data-media-id="m-yodawg" src="/media_attachments_iframe/9?embedded=true&amp;type=video"></iframe>)
       expect(@converter.convert_exported_html(test_string)).to eq([converted_string, nil])
 
       test_string = %(<audio style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="audio" data-media-id="m-stuff"><source src="$IMS-CC-FILEBASE$/lolcat.mp3?canvas_=1&canvas_qs_type=audio&canvas_qs_amp=&canvas_qs_embedded=true&media_attachment=true" data-media-id="m-stuff" data-media-type="audio"></video>)
-      converted_string = %(<iframe style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="audio" data-media-id="m-lolcat" src="/media_attachments_iframe/8?type=audio"></iframe>)
+      converted_string = %(<iframe style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="audio" data-media-id="m-lolcat" src="/media_attachments_iframe/8?embedded=true&amp;type=audio"></iframe>)
       expect(@converter.convert_exported_html(test_string)).to eq([converted_string, nil])
     end
 
     it "converts course copy style media attachmet iframe links" do
       test_string = %(<video style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="video" allowfullscreen="allowfullscreen" allow="fullscreen" data-media-id="m-yodawg"><source src="$CANVAS_COURSE_REFERENCE$/file_ref/I?media_attachment=true&type=video" data-media-id="m-yodawg" data-media-type="video"></video>)
-      converted_string = %(<iframe style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="video" allowfullscreen="allowfullscreen" allow="fullscreen" data-media-id="m-yodawg" src="/media_attachments_iframe/9?type=video"></iframe>)
+      converted_string = %(<iframe style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="video" allowfullscreen="allowfullscreen" allow="fullscreen" data-media-id="m-yodawg" src="/media_attachments_iframe/9?type=video&embedded=true"></iframe>)
       expect(@converter.convert_exported_html(test_string)).to eq([converted_string, nil])
 
       test_string = %(<audio style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="audio" data-media-id="m-lolcat"><source src="$CANVAS_COURSE_REFERENCE$/file_ref/H?media_attachment=true&type=audio" data-media-id="m-lolcat" data-media-type="audio"></audio>)
-      converted_string = %(<iframe style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="audio" data-media-id="m-lolcat" src="/media_attachments_iframe/8?type=audio"></iframe>)
-      expect(@converter.convert_exported_html(test_string)).to eq([converted_string, nil])
-    end
-
-    it "converts mediahref iframes" do
-      test_string = %(<iframe data-media-type="video" src="/media_objects_iframe?mediahref=$CANVAS_COURSE_REFERENCE$/file_ref/I/download" data-media-id="m-yodawg"></iframe>)
-      converted_string = %(<iframe data-media-type="video" src="/media_objects_iframe?mediahref=/courses/2/files/9/download" data-media-id="m-yodawg"></iframe>)
+      converted_string = %(<iframe style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="audio" data-media-id="m-lolcat" src="/media_attachments_iframe/8?type=audio&embedded=true"></iframe>)
       expect(@converter.convert_exported_html(test_string)).to eq([converted_string, nil])
     end
 

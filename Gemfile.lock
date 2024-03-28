@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    canvas_link_migrator (1.0.6)
+    canvas_link_migrator (1.0.7)
       activesupport
       addressable
       nokogiri
@@ -63,6 +63,7 @@ PLATFORMS
   x86_64-linux
 
 DEPENDENCIES
+  activesupport (~> 7.0.8)
   bundler
   byebug
   canvas_link_migrator!
