@@ -21,11 +21,8 @@
 require "spec_helper"
 
 describe CanvasLinkMigrator::LinkParser do
-  def parser
-    migration_query_service_mock = double()
-    allow(migration_query_service_mock).to receive(:supports_embedded_images).and_return(true)
-    allow(migration_query_service_mock).to receive(:fix_relative_urls?).and_return(true)
-    CanvasLinkMigrator::LinkParser.new(migration_query_service_mock)
+  def parser(assets = JSON.parse(File.read("spec/fixtures/canvas_resource_map.json")))
+    CanvasLinkMigrator::LinkParser.new(CanvasLinkMigrator::ResourceMapService.new(assets))
   end
 
   describe "convert_link" do
