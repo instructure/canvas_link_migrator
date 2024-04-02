@@ -228,6 +228,9 @@ module CanvasLinkMigrator
         media_id = file.try(:media_object)&.media_id || file["media_entry_id"]
         node["data-media-id"] = media_id # safe to delete?
         media_attachment_iframe_url(file["id"], node["data-media-type"])
+      elsif rel_path&.match(/\/media_attachments_iframe\/\d+/)
+        # media attachment from another course or something
+        rel_path
       elsif node["data-media-id"].present?
         file = @migration_id_converter.lookup_attachment_by_media_id(node["data-media-id"])
         file ? media_attachment_iframe_url(file["id"], node["data-media-type"]) : nil

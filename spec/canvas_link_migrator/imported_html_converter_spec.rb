@@ -311,6 +311,16 @@ describe CanvasLinkMigrator::ImportedHtmlConverter do
       expect(@converter.convert_exported_html(test_string)).to eq([converted_string, nil])
     end
 
+    it "converts source tags to RCE media attachment iframes when link is an unknown media attachment reference (link from a public file in another course)" do
+      test_string = %(<video style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="video" allowfullscreen="allowfullscreen" allow="fullscreen" data-media-id="0_l4l5n0wt"><source src="/media_attachments_iframe/18?type=video" data-media-id="0_l4l5n0wt" data-media-type="video"></video>)
+      converted_string = %(<iframe style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="video" allowfullscreen="allowfullscreen" allow="fullscreen" data-media-id="0_l4l5n0wt" src="/media_attachments_iframe/18?type=video"></iframe>)
+      expect(@converter.convert_exported_html(test_string)).to eq([converted_string, nil])
+
+      test_string = %(<audio style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="audio" data-media-id="0_l4l5n0wu"><source src="/media_attachments_iframe/19?type=audio" data-media-id="0_l4l5n0wu" data-media-type="audio"></video>)
+      converted_string = %(<iframe style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="audio" data-media-id="0_l4l5n0wu" src="/media_attachments_iframe/19?type=audio"></iframe>)
+      expect(@converter.convert_exported_html(test_string)).to eq([converted_string, nil])
+    end
+
     it "converts course copy style media attachmet iframe links" do
       test_string = %(<video style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="video" allowfullscreen="allowfullscreen" allow="fullscreen" data-media-id="m-yodawg"><source src="$CANVAS_COURSE_REFERENCE$/file_ref/I?media_attachment=true&type=video" data-media-id="m-yodawg" data-media-type="video"></video>)
       converted_string = %(<iframe style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="video" allowfullscreen="allowfullscreen" allow="fullscreen" data-media-id="m-yodawg" src="/media_attachments_iframe/9?type=video&embedded=true"></iframe>)
