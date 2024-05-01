@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    canvas_link_migrator (1.0.8)
+    canvas_link_migrator (1.0.9)
       activesupport
       addressable
       nokogiri
