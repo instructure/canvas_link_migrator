@@ -96,12 +96,15 @@ module CanvasLinkMigrator
 
       # Replace old style media anchor tags with iframes
       doc.search("a[id*='media_comment_']").each do |media_node|
+        next unless media_node["class"].match('instructure_inline_media_comment')
+
         media_node.name = "iframe"
         # smallest accepted size for iframe since we don't have the size available for these
         media_node["style"] = "width: 320px; height: 240px; display: inline-block;"
         media_node["title"] = media_node.text
         media_node.child&.remove
-        media_node["data-media-type"] = media_node["class"].match(/(audio|video)_comment/)[1]
+        media_type = media_node["class"].match(/(audio|video)/)&.[](1)
+        media_node["data-media-type"] = media_type if media_type
         media_node["src"] = media_node["href"]
         media_node.delete("href")
         media_node["allowfullscreen"] = "allowfullscreen"

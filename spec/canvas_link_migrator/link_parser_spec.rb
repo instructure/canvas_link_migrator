@@ -51,4 +51,17 @@ describe CanvasLinkMigrator::LinkParser do
       expect{ parser.convert_link(doc.at_css('a'), "href", "wiki_page", "migrationid", "") }.not_to raise_error
     end
   end
+
+  describe "convert" do
+    it "does not change media anchor tags into iframes if they don't have inline_media_comment in the class" do
+      doc = Nokogiri::HTML5.fragment(%Q(<p><a id="media_comment_m-5HHT5LqZqPf7qhEJ7PbKtehCiunxM4BB" class=" instructure_video_link instructure_file_link" title="00-Personal Intro.m4v" href="https://xu.instructure.com/courses/83206/files/12176377/download?wrap=1" target="" data-api-endpoint="https://xu.instructure.com/api/v1/courses/83206/files/12176377" data-api-returntype="File">Click here to watch personal introduction</a></p>))
+      parser.convert(doc.to_html, "type", "lookup_id", "field")
+      expect(doc.to_html).to match(%Q(<p><a id="media_comment_m-5HHT5LqZqPf7qhEJ7PbKtehCiunxM4BB" class=" instructure_video_link instructure_file_link" title="00-Personal Intro.m4v" href="https://xu.instructure.com/courses/83206/files/12176377/download?wrap=1" target="" data-api-endpoint="https://xu.instructure.com/api/v1/courses/83206/files/12176377" data-api-returntype="File">Click here to watch personal introduction</a></p>))
+    end
+
+    it "does not crash if it can't find a video/audio_comment class name" do
+      doc = Nokogiri::HTML5.fragment(%Q(<a id="media_comment_m-4uoGqVdEqXhpqu2ZMytHSy9XMV73aQ7E" class="instructure_inline_media_comment" data-media_comment_type="video" data-alt=""></a>))
+      expect{ parser.convert(doc.to_html, "type", "lookup_id", "field") }.not_to raise_error
+    end
+  end
 end
