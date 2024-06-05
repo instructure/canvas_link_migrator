@@ -48,25 +48,25 @@ describe CanvasLinkMigrator::LinkResolver do
     it "converts file_ref urls" do
       link = { link_type: :file_ref, migration_id: "F" }
       resolver.resolve_link!(link)
-      expect(link[:new_value]).to eq("/courses/2/files/6/preview")
+      expect(link[:new_value]).to eq("/courses/2/files/6/preview?verifier=u6")
     end
 
     it "does not suffix /preview to target blank links" do
       link = { link_type: :file_ref, target_blank: true, migration_id: "F" }
       resolver.resolve_link!(link)
-      expect(link[:new_value]).to eq("/courses/2/files/6")
+      expect(link[:new_value]).to eq("/courses/2/files/6?verifier=u6")
     end
 
     it "converts attachment urls" do
       link = { link_type: :object, type: "attachments", migration_id: "E", query: "?foo=bar" }
       resolver.resolve_link!(link)
-      expect(link[:new_value]).to eq("/courses/2/files/5/preview")
+      expect(link[:new_value]).to eq("/courses/2/files/5/preview?verifier=u5")
     end
 
     it "converts media_attachments_iframe urls" do
       link = { link_type: :object, type: "media_attachments_iframe", migration_id: "F", query: "?foo=bar" }
       resolver.resolve_link!(link)
-      expect(link[:new_value]).to eq("/media_attachments_iframe/6?foo=bar")
+      expect(link[:new_value]).to eq("/media_attachments_iframe/6?foo=bar&verifier=u6")
     end
 
     it "converts discussion_topic links" do

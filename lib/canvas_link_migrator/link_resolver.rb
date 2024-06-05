@@ -18,6 +18,7 @@
 # with this program. If not, see <http://www.gnu.org/licenses/>.
 
 require "active_support/core_ext/object"
+require "addressable"
 require "rack"
 
 module CanvasLinkMigrator
@@ -42,6 +43,14 @@ module CanvasLinkMigrator
 
     def attachment_path_id_lookup_lower
       @attachment_path_id_lookup_lower ||= attachment_path_id_lookup&.transform_keys(&:downcase)
+    end
+
+    def add_verifier_to_query(url, uuid)
+      parsed_url = Addressable::URI.parse(url)
+      parsed_url.query_values = (parsed_url.query_values || {}).merge("verifier" => uuid)
+      parsed_url.to_s
+    rescue Addressable::InvalidURIError
+      url
     end
 
     # finds the :new_value to use to replace the placeholder
@@ -71,13 +80,17 @@ module CanvasLinkMigrator
           linked_wiki_url = @migration_id_converter.convert_wiki_page_migration_id_to_slug(migration_id) || migration_id
           link[:new_value] = "#{context_path}/pages/#{linked_wiki_url}#{query}"
         elsif type == "attachments"
-          att_id = @migration_id_converter.convert_attachment_migration_id(migration_id)
+          att_id, uuid = @migration_id_converter.convert_attachment_migration_id(migration_id)
           if att_id
-            link[:new_value] = "#{context_path}/files/#{att_id}/preview"
+            new_url = "#{context_path}/files/#{att_id}/preview"
+            new_url = add_verifier_to_query(new_url, uuid) if uuid
+            link[:new_value] = new_url
           end
         elsif type == "media_attachments_iframe"
-          att_id = @migration_id_converter.convert_attachment_migration_id(migration_id)
-          link[:new_value] = att_id ? "/media_attachments_iframe/#{att_id}#{link[:query]}" : link[:old_value]
+          att_id, uuid = @migration_id_converter.convert_attachment_migration_id(migration_id)
+          new_url = att_id ? "/media_attachments_iframe/#{att_id}#{link[:query]}" : link[:old_value]
+          new_url = add_verifier_to_query(new_url, uuid) if uuid
+          link[:new_value] = new_url
         else
           object_id = @migration_id_converter.convert_migration_id(type, migration_id)
           if object_id
@@ -116,7 +129,7 @@ module CanvasLinkMigrator
         end
         link[:new_value] = new_url
       when :file_ref
-        file_id = @migration_id_converter.convert_attachment_migration_id(link[:migration_id])
+        file_id, uuid = @migration_id_converter.convert_attachment_migration_id(link[:migration_id])
         if file_id
           rest = link[:rest].presence
           rest ||= "/preview" unless link[:target_blank]
@@ -125,13 +138,15 @@ module CanvasLinkMigrator
           # context prepended to the URL. This prevents
           # redirects to non cross-origin friendly urls
           # during a file fetch
-          if rest&.include?("icon_maker_icon=1")
-            link[:new_value] = "/files/#{file_id}#{rest}"
-          elsif link[:in_media_iframe]
-            link[:new_value] = "/media_attachments_iframe/#{file_id}#{rest}"
-          else
-            link[:new_value] = "#{context_path}/files/#{file_id}#{rest}"
-          end
+          new_url = if rest&.include?("icon_maker_icon=1")
+                      "/files/#{file_id}#{rest}"
+                    elsif link[:in_media_iframe]
+                      "/media_attachments_iframe/#{file_id}#{rest}"
+                    else
+                      "#{context_path}/files/#{file_id}#{rest}"
+                    end
+          new_url = add_verifier_to_query(new_url, uuid) if uuid
+          link[:new_value] = new_url
         else
           link[:missing_url] = link[:old_value].partition("$CANVAS_COURSE_REFERENCE$").last
         end
@@ -200,6 +215,7 @@ module CanvasLinkMigrator
           # CCHelper::file_query_string
           params = Rack::Utils.parse_nested_query(qs.presence || "")
           qs = []
+          qs << "verifier=#{file["uuid"]}" if file["uuid"].present?
           new_action = ""
           params.each do |k, v|
             case k
@@ -217,23 +233,24 @@ module CanvasLinkMigrator
       new_url
     end
 
-    def media_attachment_iframe_url(file_id, media_type = nil)
+    def media_attachment_iframe_url(file_id, uuid = nil, media_type = nil)
       url = "/media_attachments_iframe/#{file_id}?embedded=true"
       url += "&type=#{media_type}" if media_type.present?
+      url += "&verifier=#{uuid}" if uuid.present?
       url
     end
 
     def resolve_media_data(node, rel_path)
       if rel_path && (file = find_file_in_context(rel_path[/^[^?]+/])) # strip query string for this search
-        media_id = file.try(:media_object)&.media_id || file["media_entry_id"]
+        media_id = file["media_entry_id"]
         node["data-media-id"] = media_id # safe to delete?
-        media_attachment_iframe_url(file["id"], node["data-media-type"])
+        media_attachment_iframe_url(file["id"], file["uuid"], node["data-media-type"])
       elsif rel_path&.match(/\/media_attachments_iframe\/\d+/)
         # media attachment from another course or something
         rel_path
       elsif node["data-media-id"].present?
-        file = @migration_id_converter.lookup_attachment_by_media_id(node["data-media-id"])
-        file ? media_attachment_iframe_url(file["id"], node["data-media-type"]) : nil
+        file_id, uuid = @migration_id_converter.convert_attachment_media_id(node["data-media-id"])
+        file_id ? media_attachment_iframe_url(file_id, uuid, node["data-media-type"]) : nil
       else
         node.delete("class")
         node.delete("id")

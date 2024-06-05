@@ -50,49 +50,60 @@
       "E": {
         "destination": {
           "id": "5",
-          "media_entry_id": "m-stuff"
+          "media_entry_id": "m-stuff",
+          "uuid": "u5"
         },
         "source": {
           "id": "3",
-          "media_entry_id": "m-stuff"
+          "media_entry_id": "m-stuff",
+          "uuid": "u3"
         }
       },
       "F": {
         "destination": {
           "id": "6",
-          "media_entry_id": "0_bq09qam2"
+          "media_entry_id": "0_bq09qam2",
+          "uuid": "u6"
         },
         "source": {
           "id": "4",
-          "media_entry_id": "0_bq09qam2"
+          "media_entry_id": "0_bq09qam2",
+          "uuid": "u4"
         }
       },
       "G": {
         "destination": {
-          "id": "7"
+          "id": "7",
+          "uuid": "u7"
         },
         "source": {
-          "id": "2"
+          "id": "2",
+          "uuid": "u2"
         }
       },
       "H": {
         "destination": {
           "id": "8",
-          "media_entry_id": "m-lolcat"
+          "media_entry_id": "m-lolcat",
+          "uuid": "u8"
+
         },
         "source": {
           "id": "3",
-          "media_entry_id": "m-lolcat"
+          "media_entry_id": "m-lolcat",
+          "uuid": "u3"
         }
       },
       "I": {
         "destination": {
           "id": "9",
-          "media_entry_id": "m-yodawg"
+          "media_entry_id": "m-yodawg",
+          "uuid": "u9"
         },
         "source": {
           "id": "4",
-          "media_entry_id": "m-yodawg"
+          "media_entry_id": "m-yodawg",
+          "uuid": "u4"
         }
       }
     },
