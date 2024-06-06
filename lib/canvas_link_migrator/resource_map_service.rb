@@ -89,7 +89,19 @@ module CanvasLinkMigrator
     end
 
     def convert_attachment_migration_id(migration_id)
-      resources.dig("files", migration_id, "destination", "id")
+      resources.dig("files", migration_id, "destination")&.slice("id", "uuid")&.values
+    end
+
+    def media_map
+      @media_map ||= resources["files"].each_with_object({}) do |(_mig_id, file), map|
+        media_id = file.dig("destination", "media_entry_id")
+        next unless media_id
+        map[media_id] = file
+      end
+    end
+
+    def convert_attachment_media_id(media_id)
+      media_map.dig(media_id, "destination")&.slice("id", "uuid")&.values
     end
 
     def convert_migration_id(type, migration_id)
@@ -105,18 +117,6 @@ module CanvasLinkMigrator
 
     def lookup_attachment_by_migration_id(migration_id)
       resources.dig("files", migration_id, "destination")
-    end
-
-    def media_map
-      @media_map ||= resources["files"].each_with_object({}) do |(_mig_id, file), map|
-        media_id = file.dig("destination", "media_entry_id")
-        next unless media_id
-        map[media_id] = file
-      end
-    end
-
-    def lookup_attachment_by_media_id(media_id)
-      media_map.dig(media_id, "destination")
     end
   end
 end

@@ -19,7 +19,6 @@
 
 require "nokogiri"
 require "digest"
-require "addressable"
 
 module CanvasLinkMigrator
   class LinkParser
@@ -144,12 +143,7 @@ module CanvasLinkMigrator
         url.gsub!("%24#{ref}%24", "$#{ref}$")
       end
 
-      begin
-        result = parse_url(url, node, attr)
-      rescue Addressable::URI::InvalidURIError
-        return
-      end
-
+      result = parse_url(url, node, attr)
       if result[:resolved]
         # resolved, just replace and carry on
         new_url = result[:new_url] || url

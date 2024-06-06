@@ -75,7 +75,7 @@ describe CanvasLinkMigrator::ImportedHtmlConverter do
         it "converts data-download-url for files without appending a context" do
           html, bad_links = subject
           expect(html).to eq(
-            "<img src=\"#{@path}files/5/download?download_frd=1\" alt=\"\" data-inst-icon-maker-icon=\"true\" data-download-url=\"/files/5/download?download_frd=1&icon_maker_icon=1\">"
+            "<img src=\"#{@path}files/5/download?download_frd=1&verifier=u5\" alt=\"\" data-inst-icon-maker-icon=\"true\" data-download-url=\"/files/5/download?download_frd=1&icon_maker_icon=1&verifier=u5\">"
           )
           expect(bad_links).to be_nil
         end
@@ -83,7 +83,7 @@ describe CanvasLinkMigrator::ImportedHtmlConverter do
 
       it "finds an attachment by migration id" do
         test_string = %{<p>This is an image: <br /><img src="%24CANVAS_OBJECT_REFERENCE%24/attachments/F" alt=":(" /></p>}
-        expect(@converter.convert_exported_html(test_string)).to eq([%{<p>This is an image: <br><img src="#{@path}files/6/preview" alt=":("></p>}, nil])
+        expect(@converter.convert_exported_html(test_string)).to eq([%{<p>This is an image: <br><img src="#{@path}files/6/preview?verifier=u6" alt=":("></p>}, nil])
       end
 
       it "leaves relative user attachments alone" do
@@ -106,20 +106,20 @@ describe CanvasLinkMigrator::ImportedHtmlConverter do
         expect(bad_links[0]).to include({ link_type: :file, missing_url: "/courses/2/file_contents/course%20files/test.png" })
 
         expect(@converter.link_resolver).to receive(:attachment_path_id_lookup).twice.and_call_original
-        expect(@converter.convert_exported_html(test_string)).to eq([%{<p>This is an image: <br><img src="#{@path}files/5/preview" alt=":("></p>}, nil])
+        expect(@converter.convert_exported_html(test_string)).to eq([%{<p>This is an image: <br><img src="#{@path}files/5/preview?verifier=u5" alt=":("></p>}, nil])
       end
 
       it "finds an attachment by a path with a space" do
         test_string = %(<img src="subfolder/with%20a%20space/test.png" alt="nope" />)
-        expect(@converter.convert_exported_html(test_string)).to eq([%(<img src="#{@path}files/6/preview" alt="nope">), nil])
+        expect(@converter.convert_exported_html(test_string)).to eq([%(<img src="#{@path}files/6/preview?verifier=u6" alt="nope">), nil])
 
         test_string = %(<img src="subfolder/with+a+space/test.png" alt="nope" />)
-        expect(@converter.convert_exported_html(test_string)).to eq([%(<img src="#{@path}files/6/preview" alt="nope">), nil])
+        expect(@converter.convert_exported_html(test_string)).to eq([%(<img src="#{@path}files/6/preview?verifier=u6" alt="nope">), nil])
       end
 
       it "finds an attachment even if the link has an extraneous folder" do
         test_string = %(<img src="anotherfolder/subfolder/test.png" alt="nope" />)
-        expect(@converter.convert_exported_html(test_string)).to eq([%(<img src="#{@path}files/7/preview" alt="nope">), nil])
+        expect(@converter.convert_exported_html(test_string)).to eq([%(<img src="#{@path}files/7/preview?verifier=u7" alt="nope">), nil])
       end
 
       it "finds an attachment by path if capitalization is different" do
@@ -127,18 +127,18 @@ describe CanvasLinkMigrator::ImportedHtmlConverter do
         expect(@converter.link_resolver).to receive(:attachment_path_id_lookup).twice.and_return({ "subfolder/withcapital/test.png" => "F" })
 
         test_string = %(<img src="subfolder/WithCapital/TEST.png" alt="nope" />)
-        expect(@converter.convert_exported_html(test_string)).to eq([%(<img src="#{@path}files/6/preview" alt="nope">), nil])
+        expect(@converter.convert_exported_html(test_string)).to eq([%(<img src="#{@path}files/6/preview?verifier=u6" alt="nope">), nil])
       end
 
       it "finds an attachment with query params" do
         test_string = %(<img src="%24IMS_CC_FILEBASE%24/test.png?canvas_customaction=1&canvas_qs_customparam=1" alt="nope" />)
-        expect(@converter.convert_exported_html(test_string)).to eq([%(<img src="#{@path}files/5/customaction?customparam=1" alt="nope">), nil])
+        expect(@converter.convert_exported_html(test_string)).to eq([%(<img src="#{@path}files/5/customaction?verifier=u5&customparam=1" alt="nope">), nil])
 
         test_string = %(<img src="%24IMS_CC_FILEBASE%24/test.png?canvas_qs_customparam2=3" alt="nope" />)
-        expect(@converter.convert_exported_html(test_string)).to eq([%(<img src="#{@path}files/5/preview?customparam2=3" alt="nope">), nil])
+        expect(@converter.convert_exported_html(test_string)).to eq([%(<img src="#{@path}files/5/preview?verifier=u5&customparam2=3" alt="nope">), nil])
 
         test_string = %(<img src="%24IMS_CC_FILEBASE%24/test.png?notarelevantparam" alt="nope" />)
-        expect(@converter.convert_exported_html(test_string)).to eq([%(<img src="#{@path}files/5/preview" alt="nope">), nil])
+        expect(@converter.convert_exported_html(test_string)).to eq([%(<img src="#{@path}files/5/preview?verifier=u5" alt="nope">), nil])
       end
     end
 
@@ -221,9 +221,9 @@ describe CanvasLinkMigrator::ImportedHtmlConverter do
 
       expected_string = <<~HTML.strip
         <p>
-          with media object url: <iframe id="media_comment_m-stuff" class="instructure_inline_media_comment video_comment" style="width: 320px; height: 240px; display: inline-block;" title="this is a media comment" data-media-type="video" src="/media_attachments_iframe/5?embedded=true&amp;type=video" allowfullscreen="allowfullscreen" allow="fullscreen" data-media-id="m-stuff"></iframe>
-          with file content url: <iframe id="media_comment_0_bq09qam2" class="instructure_inline_media_comment video_comment" style="width: 320px; height: 240px; display: inline-block;" title="this is a media comment" data-media-type="video" src="/media_attachments_iframe/6?embedded=true&amp;type=video" allowfullscreen="allowfullscreen" allow="fullscreen" data-media-id="0_bq09qam2"></iframe>
-          with mediahref url: <iframe data-media-type="video" src="/media_attachments_iframe/9?type=video&embedded=true" data-media-id="m-yodawg"></iframe>
+          with media object url: <iframe id="media_comment_m-stuff" class="instructure_inline_media_comment video_comment" style="width: 320px; height: 240px; display: inline-block;" title="this is a media comment" data-media-type="video" src="/media_attachments_iframe/5?embedded=true&amp;type=video&amp;verifier=u5" allowfullscreen="allowfullscreen" allow="fullscreen" data-media-id="m-stuff"></iframe>
+          with file content url: <iframe id="media_comment_0_bq09qam2" class="instructure_inline_media_comment video_comment" style="width: 320px; height: 240px; display: inline-block;" title="this is a media comment" data-media-type="video" src="/media_attachments_iframe/6?embedded=true&amp;type=video&amp;verifier=u6" allowfullscreen="allowfullscreen" allow="fullscreen" data-media-id="0_bq09qam2"></iframe>
+          with mediahref url: <iframe data-media-type="video" src="/media_attachments_iframe/9?embedded=true&type=video&verifier=u9" data-media-id="m-yodawg"></iframe>
         </p>
       HTML
 
@@ -272,8 +272,8 @@ describe CanvasLinkMigrator::ImportedHtmlConverter do
       HTML
       expected_string = <<~HTML.strip
         <p>
-          with wrong file in href: <iframe class="instructure_inline_media_comment video_comment" id="media_comment_m-stuff" style="width: 320px; height: 240px; display: inline-block;" title="this is a media comment" data-media-type="video" src="/media_attachments_iframe/5?embedded=true&amp;type=video" allowfullscreen="allowfullscreen" allow="fullscreen" data-media-id="m-stuff"></iframe><br><br>
-          with no href: <iframe class="instructure_inline_media_comment video_comment" id="media_comment_m-stuff" style="width: 320px; height: 240px; display: inline-block;" title="" data-media-type="video" src="/media_attachments_iframe/5?embedded=true&amp;type=video" allowfullscreen="allowfullscreen" allow="fullscreen" data-media-id="m-stuff"></iframe><br><br>
+          with wrong file in href: <iframe class="instructure_inline_media_comment video_comment" id="media_comment_m-stuff" style="width: 320px; height: 240px; display: inline-block;" title="this is a media comment" data-media-type="video" src="/media_attachments_iframe/5?embedded=true&amp;type=video&amp;verifier=u5" allowfullscreen="allowfullscreen" allow="fullscreen" data-media-id="m-stuff"></iframe><br><br>
+          with no href: <iframe class="instructure_inline_media_comment video_comment" id="media_comment_m-stuff" style="width: 320px; height: 240px; display: inline-block;" title="" data-media-type="video" src="/media_attachments_iframe/5?embedded=true&amp;type=video&amp;verifier=u5" allowfullscreen="allowfullscreen" allow="fullscreen" data-media-id="m-stuff"></iframe><br><br>
         </p>
       HTML
       expect(@converter.convert_exported_html(test_string)).to eq([expected_string, nil])
@@ -281,33 +281,33 @@ describe CanvasLinkMigrator::ImportedHtmlConverter do
 
     it "converts old RCE media object iframes" do
       test_string = %(<iframe style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="video" src="/media_objects_iframe/m-lolcat?type=video" allowfullscreen="allowfullscreen" allow="fullscreen" data-media-id="m-lolcat"></iframe>)
-      replacement_string = %(<iframe style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="video" src="/media_attachments_iframe/8?embedded=true&amp;type=video" allowfullscreen="allowfullscreen" allow="fullscreen" data-media-id="m-lolcat"></iframe>)
+      replacement_string = %(<iframe style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="video" src="/media_attachments_iframe/8?embedded=true&amp;type=video&amp;verifier=u8" allowfullscreen="allowfullscreen" allow="fullscreen" data-media-id="m-lolcat"></iframe>)
       expect(@converter.convert_exported_html(test_string)).to eq([replacement_string, nil])
     end
 
     it "handles and repair half broken new RCE media iframes" do
       test_string = %(<iframe style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="video" src="%24IMS_CC_FILEBASE%24/#" allowfullscreen="allowfullscreen" allow="fullscreen" data-media-id="m-lolcat"></iframe>)
-      repaired_string = %(<iframe style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="video" src="/media_attachments_iframe/8?embedded=true&amp;type=video" allowfullscreen="allowfullscreen" allow="fullscreen" data-media-id="m-lolcat"></iframe>)
+      repaired_string = %(<iframe style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="video" src="/media_attachments_iframe/8?embedded=true&amp;type=video&amp;verifier=u8" allowfullscreen="allowfullscreen" allow="fullscreen" data-media-id="m-lolcat"></iframe>)
       expect(@converter.convert_exported_html(test_string)).to eq([repaired_string, nil])
     end
 
     it "converts source tags to RCE media iframes" do
       test_string = %(<video style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="video" allowfullscreen="allowfullscreen" allow="fullscreen" data-media-id="m-lolcat"><source src="/media_objects_iframe/m-lolcat?type=video" data-media-id="m-lolcat" data-media-type="video"></video>)
-      converted_string = %(<iframe style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="video" allowfullscreen="allowfullscreen" allow="fullscreen" data-media-id="m-lolcat" src="/media_attachments_iframe/8?embedded=true&amp;type=video"></iframe>)
+      converted_string = %(<iframe style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="video" allowfullscreen="allowfullscreen" allow="fullscreen" data-media-id="m-lolcat" src="/media_attachments_iframe/8?embedded=true&amp;type=video&amp;verifier=u8"></iframe>)
       expect(@converter.convert_exported_html(test_string)).to eq([converted_string, nil])
 
       test_string = %(<audio style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="audio" data-media-id="m-yodawg"><source src="/media_objects_iframe/m-yodawg?type=audio" data-media-id="m-yodawg" data-media-type="audio"></audio>)
-      converted_string = %(<iframe style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="audio" data-media-id="m-yodawg" src="/media_attachments_iframe/9?embedded=true&amp;type=audio"></iframe>)
+      converted_string = %(<iframe style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="audio" data-media-id="m-yodawg" src="/media_attachments_iframe/9?embedded=true&amp;type=audio&amp;verifier=u9"></iframe>)
       expect(@converter.convert_exported_html(test_string)).to eq([converted_string, nil])
     end
 
     it "converts source tags to RCE media attachment iframes" do
       test_string = %(<video style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="video" allowfullscreen="allowfullscreen" allow="fullscreen" data-media-id="m-stuff"><source src="$IMS-CC-FILEBASE$/subfolder/with a space/yodawg.mov?canvas_=1&canvas_qs_type=video&canvas_qs_amp=&canvas_qs_embedded=true&media_attachment=true" data-media-id="m-stuff" data-media-type="video"></video>)
-      converted_string = %(<iframe style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="video" allowfullscreen="allowfullscreen" allow="fullscreen" data-media-id="m-yodawg" src="/media_attachments_iframe/9?embedded=true&amp;type=video"></iframe>)
+      converted_string = %(<iframe style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="video" allowfullscreen="allowfullscreen" allow="fullscreen" data-media-id="m-yodawg" src="/media_attachments_iframe/9?embedded=true&amp;type=video&amp;verifier=u9"></iframe>)
       expect(@converter.convert_exported_html(test_string)).to eq([converted_string, nil])
 
       test_string = %(<audio style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="audio" data-media-id="m-stuff"><source src="$IMS-CC-FILEBASE$/lolcat.mp3?canvas_=1&canvas_qs_type=audio&canvas_qs_amp=&canvas_qs_embedded=true&media_attachment=true" data-media-id="m-stuff" data-media-type="audio"></video>)
-      converted_string = %(<iframe style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="audio" data-media-id="m-lolcat" src="/media_attachments_iframe/8?embedded=true&amp;type=audio"></iframe>)
+      converted_string = %(<iframe style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="audio" data-media-id="m-lolcat" src="/media_attachments_iframe/8?embedded=true&amp;type=audio&amp;verifier=u8"></iframe>)
       expect(@converter.convert_exported_html(test_string)).to eq([converted_string, nil])
     end
 
@@ -323,11 +323,11 @@ describe CanvasLinkMigrator::ImportedHtmlConverter do
 
     it "converts course copy style media attachmet iframe links" do
       test_string = %(<video style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="video" allowfullscreen="allowfullscreen" allow="fullscreen" data-media-id="m-yodawg"><source src="$CANVAS_COURSE_REFERENCE$/file_ref/I?media_attachment=true&type=video" data-media-id="m-yodawg" data-media-type="video"></video>)
-      converted_string = %(<iframe style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="video" allowfullscreen="allowfullscreen" allow="fullscreen" data-media-id="m-yodawg" src="/media_attachments_iframe/9?type=video&embedded=true"></iframe>)
+      converted_string = %(<iframe style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="video" allowfullscreen="allowfullscreen" allow="fullscreen" data-media-id="m-yodawg" src="/media_attachments_iframe/9?embedded=true&type=video&verifier=u9"></iframe>)
       expect(@converter.convert_exported_html(test_string)).to eq([converted_string, nil])
 
       test_string = %(<audio style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="audio" data-media-id="m-lolcat"><source src="$CANVAS_COURSE_REFERENCE$/file_ref/H?media_attachment=true&type=audio" data-media-id="m-lolcat" data-media-type="audio"></audio>)
-      converted_string = %(<iframe style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="audio" data-media-id="m-lolcat" src="/media_attachments_iframe/8?type=audio&embedded=true"></iframe>)
+      converted_string = %(<iframe style="width: 400px; height: 225px; display: inline-block;" title="this is a media comment" data-media-type="audio" data-media-id="m-lolcat" src="/media_attachments_iframe/8?embedded=true&type=audio&verifier=u8"></iframe>)
       expect(@converter.convert_exported_html(test_string)).to eq([converted_string, nil])
     end
 
