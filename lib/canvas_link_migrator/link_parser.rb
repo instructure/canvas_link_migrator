@@ -84,7 +84,7 @@ module CanvasLinkMigrator
       doc = Nokogiri::HTML5.fragment(html || "")
 
       # Replace source tags with iframes
-      doc.search("source[data-media-id]").each do |source|
+      doc.search("source[data-media-type],source[data-media-id]").each do |source|
         next unless RCE_MEDIA_TYPES.include?(source.parent.name)
 
         media_node = source.parent
@@ -232,12 +232,12 @@ module CanvasLinkMigrator
       elsif url =~ %r{\$IMS(?:-|_)CC(?:-|_)FILEBASE\$/(.*)}
         rel_path = URI::DEFAULT_PARSER.unescape($1)
         if (attr == "href" && node["class"]&.include?("instructure_inline_media_comment")) ||
-           (attr == "src" && ["iframe", "source"].include?(node.name) && node["data-media-id"])
+           (attr == "src" && ["iframe", "source"].include?(node.name))
           unresolved(:media_object, rel_path: rel_path)
         else
           unresolved(:file, rel_path: rel_path)
         end
-      elsif (attr == "src" && ["iframe", "source"].include?(node.name) && node["data-media-id"])
+      elsif (attr == "src" && ["iframe", "source"].include?(node.name) && (node["data-media-id"] || node["data-media-type"]))
         # media_objects_iframe course copy reference without an attachment id, change to media_attachments_iframe
         unresolved(:media_object, rel_path: node["src"])
       elsif @migration_query_service.supports_embedded_images && attr == "src" && (info_match = url.match(%r{\Adata:(?<mime_type>[-\w]+/[-\w+.]+)?;base64,(?<image>.*)}m))

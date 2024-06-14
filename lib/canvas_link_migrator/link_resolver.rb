@@ -248,8 +248,9 @@ module CanvasLinkMigrator
       elsif rel_path&.match(/\/media_attachments_iframe\/\d+/)
         # media attachment from another course or something
         rel_path
-      elsif node["data-media-id"].present?
-        file_id, uuid = @migration_id_converter.convert_attachment_media_id(node["data-media-id"])
+      elsif (file_id, uuid = @migration_id_converter.convert_attachment_media_id(node["data-media-id"]))
+        file_id ? media_attachment_iframe_url(file_id, uuid, node["data-media-type"]) : nil
+      elsif (file_id, uuid = @migration_id_converter.convert_attachment_media_id(rel_path.match(/media_objects(?:_iframe)?\/([^?.]+)/)&.[](1)))
         file_id ? media_attachment_iframe_url(file_id, uuid, node["data-media-type"]) : nil
       else
         node.delete("class")
