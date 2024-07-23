@@ -232,7 +232,7 @@ module CanvasLinkMigrator
       elsif url =~ %r{\$IMS(?:-|_)CC(?:-|_)FILEBASE\$/(.*)}
         rel_path = URI::DEFAULT_PARSER.unescape($1)
         if (attr == "href" && node["class"]&.include?("instructure_inline_media_comment")) ||
-           (attr == "src" && ["iframe", "source"].include?(node.name) && (node["data-media-id"] || node["data-media-type"] || node[attr].include?("media_objects_iframe")))
+           (attr == "src" && ["iframe", "source"].include?(node.name) && (node["data-media-id"] || node["data-media-type"]))
           unresolved(:media_object, rel_path: rel_path)
         else
           unresolved(:file, rel_path: rel_path)
