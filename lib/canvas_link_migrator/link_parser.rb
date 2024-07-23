@@ -19,7 +19,6 @@
 
 require "nokogiri"
 require "digest"
-require "byebug"
 
 module CanvasLinkMigrator
   class LinkParser
