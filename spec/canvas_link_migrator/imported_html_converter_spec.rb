@@ -400,5 +400,16 @@ describe CanvasLinkMigrator::ImportedHtmlConverter do
       test_string = '<p><a href="#anchor_ref">ref</a></p>'
       expect(@converter.convert_exported_html(test_string)).to eq([test_string, nil])
     end
+
+    it "converts iframe srcs that point to non-media files" do
+      test_string = <<~HTML
+      <p><iframe style="width: 100%; height: 100vh; border: none;" src="$IMS-CC-FILEBASE$/subfolder/test.png?canvas_download=1"></iframe></p>
+      HTML
+      converted_string = <<~HTML
+      <p><iframe style="width: 100%; height: 100vh; border: none;" src="/courses/2/files/7/download?verifier=u7"></iframe></p>
+      HTML
+      html = @converter.convert_exported_html(test_string)
+      expect(html[0]).to eq converted_string
+    end
   end
 end
