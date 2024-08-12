@@ -32,6 +32,12 @@ describe CanvasLinkMigrator::LinkParser do
       expect(parsed[:target_blank]).to be true
     end
 
+    it "checks data-media-type attribute to determine in_media_iframe" do
+      doc = Nokogiri::HTML5.fragment("<p><iframe data-media-type=\"video\" src=\"$CANVAS_COURSE_REFERENCE$/file_ref/whatevs\"></iframe></p>")
+      parsed = parser.parse_url("$CANVAS_COURSE_REFERENCE$/file_ref/whatevs", doc.at_css('iframe'), "src")
+      expect(parsed[:in_media_iframe]).to eq "video"
+    end
+
     it "converts inner html of anchor tags when appropriate" do
       doc = Nokogiri::HTML5.fragment("<a href=\"$WIKI_REFERENCE$/pages/1\">$WIKI_REFERENCE$/pages/1</a>")
       parser.convert_link(doc.at_css('a'), "href","wiki_page", "migrationid", "")

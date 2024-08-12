@@ -211,7 +211,7 @@ module CanvasLinkMigrator
       elsif url =~ %r{\$CANVAS_COURSE_REFERENCE\$/modules/items/([^?]*)(\?.*)?}
         unresolved(:module_item, migration_id: $1, query: $2)
       elsif url =~ %r{\$CANVAS_COURSE_REFERENCE\$/file_ref/([^/?#]+)(.*)}
-        in_media_iframe = (attr == "src" && ["iframe", "source"].include?(node.name) && node["data-media-id"])
+        in_media_iframe = (attr == "src" && ["iframe", "source"].include?(node.name) && (node["data-media-id"] || node["data-media-type"]))
         rest = in_media_iframe ? media_params(node["data-media-type"]) : $2
         unresolved(:file_ref,
                    migration_id: $1,
