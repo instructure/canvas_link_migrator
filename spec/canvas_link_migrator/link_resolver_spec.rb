@@ -57,6 +57,17 @@ describe CanvasLinkMigrator::LinkResolver do
       expect(link[:new_value]).to eq("/courses/2/files/6?verifier=u6")
     end
 
+    it "does not leave a trailing slash on the url with a `canvas_` query param" do
+      link = {
+        link_type: :file,
+        migration_id: "F",
+        rel_path: "subfolder/with a space/test.png?canvas_=1&amp;amp;canvas_qs_wrap=1" }
+
+      resolver.resolve_link!(link)
+
+      expect(link[:new_value]).to eq("/courses/2/files/6/preview?verifier=u6&wrap=1")
+    end
+
     it "converts attachment urls" do
       link = { link_type: :object, type: "attachments", migration_id: "E", query: "?foo=bar" }
       resolver.resolve_link!(link)

@@ -222,7 +222,7 @@ module CanvasLinkMigrator
             when /canvas_qs_(.*)/
               qs << "#{Rack::Utils.escape($1)}=#{Rack::Utils.escape(v)}"
             when /canvas_(.*)/
-              new_action += "/#{$1}"
+              new_action += "/#{$1}" if $1.present?
             end
           end
           new_url += new_action.presence || "/preview"
