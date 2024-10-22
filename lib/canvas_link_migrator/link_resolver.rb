@@ -226,6 +226,7 @@ module CanvasLinkMigrator
             end
           end
           new_url += new_action.presence || "/preview"
+          new_url.chomp!("/")
           new_url += "?#{qs.join("&")}" if qs.present?
         end
         rel_path_parts.shift
