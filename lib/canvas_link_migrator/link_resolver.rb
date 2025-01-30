@@ -54,7 +54,8 @@ module CanvasLinkMigrator
     end
 
     # finds the :new_value to use to replace the placeholder
-    def resolve_link!(link)
+    def resolve_link!(link, preset_type = false)
+      link[:link_type] = preset_type if preset_type
       case link[:link_type]
       when :wiki_page
         if (linked_wiki_url = @migration_id_converter.convert_wiki_page_migration_id_to_slug(link[:migration_id]))
@@ -103,7 +104,7 @@ module CanvasLinkMigrator
         # this part is a little trickier
         # tl;dr we've replaced the entire node with the placeholder
         # see LinkParser for details
-        rel_path = link[:rel_path]
+        rel_path = link[:rel_path] || link[:old_value]
         node = Nokogiri::HTML5.fragment(link[:old_value]).children.first
         new_url = resolve_media_data(node, rel_path)
         new_url ||= resolve_relative_file_url(rel_path)
@@ -112,14 +113,14 @@ module CanvasLinkMigrator
           new_url = rel_path.include?("#{context_path}/file_contents") ? rel_path : missing_relative_file_url(rel_path)
           link[:missing_url] = new_url
         end
-        if ["iframe", "source"].include?(node.name)
+        if %w[iframe source].include?(node.name)
           node["src"] = new_url
         else
           node["href"] = new_url
         end
-        link[:new_value] = node.to_s
+        link[:new_value] = node.name === 'text' ? new_url : node.to_s
       when :file
-        rel_path = link[:rel_path]
+        rel_path = link[:rel_path] || link[:old_value]
         new_url = resolve_relative_file_url(rel_path)
         # leave user urls alone
         new_url ||= rel_path if is_relative_user_url(rel_path)
@@ -249,10 +250,13 @@ module CanvasLinkMigrator
       elsif rel_path&.match(/\/media_attachments_iframe\/\d+/)
         # media attachment from another course or something
         rel_path
-      elsif (file_id, uuid = @migration_id_converter.convert_attachment_media_id(node["data-media-id"]))
+      elsif node["data-media-id"] && (file_id, uuid = @migration_id_converter.convert_attachment_media_id(node["data-media-id"]))
         file_id ? media_attachment_iframe_url(file_id, uuid, node["data-media-type"]) : nil
-      elsif (file_id, uuid = @migration_id_converter.convert_attachment_media_id(rel_path.match(/media_objects(?:_iframe)?\/([^?.]+)/)&.[](1)))
+      elsif (identifier = rel_path.match(/media_objects(?:_iframe)?\/([^?.]+)/)) && (file_id, uuid = @migration_id_converter.convert_attachment_media_id(identifier.[](1)))
         file_id ? media_attachment_iframe_url(file_id, uuid, node["data-media-type"]) : nil
+      elsif node.name == "text" && rel_path[/^[^?]+/] && (mig_id = rel_path[/^[^?]+/].match(/[^\/]+$/)[0])
+        file = @migration_id_converter.lookup_attachment_by_migration_id(mig_id)
+        media_attachment_iframe_url(file["id"], file["uuid"])
       else
         node.delete("class")
         node.delete("id")

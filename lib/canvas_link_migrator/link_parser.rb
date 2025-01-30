@@ -144,50 +144,63 @@ module CanvasLinkMigrator
       end
 
       result = parse_url(url, node, attr)
+      handle_parsed_url(url, result, node, attr, item_type, mig_id, field)
+    end
+
+    def handle_parsed_url(url, result, node, attr, item_type, mig_id, field)
       if result[:resolved]
         # resolved, just replace and carry on
-        new_url = result[:new_url] || url
-        unless CanvasLinkMigrator.relative_url?(new_url)
-          # perform configured substitutions
-          if (processed_url = @migration_query_service.process_domain_substitutions(new_url))
-            new_url = processed_url
-          end
-          # relative-ize absolute links outside the course but inside our domain
-          # (analogous to what is done in Api#process_incoming_html_content)
-          begin
-            uri = URI.parse(new_url)
-            account_hosts = @migration_query_service.context_hosts.map { |h| h.split(":").first }
-            if account_hosts.include?(uri.host)
-              uri.scheme = uri.host = uri.port = nil
-              new_url = uri.to_s
-            end
-          rescue URI::InvalidURIError, URI::InvalidComponentError
-            nil
-          end
-        end
-        node[attr] = new_url
+        handle_resolved_link(url, result, node, attr)
       else
-        result.delete(:resolved)
-        if result[:link_type] == :media_object
-          # because we may actually change the media comment node itself
-          # (rather than just replacing a value), we're going to
-          # replace the entire node with a placeholder
-          result[:old_value] = node.to_xml
-          result[:placeholder] = placeholder(result[:old_value])
-          placeholder_node = Nokogiri::HTML5.fragment(result[:placeholder])
-
-          node.replace(placeholder_node)
-        else
-          result[:old_value] = node[attr]
-          result[:placeholder] = placeholder(result[:old_value])
-          # replace the inner html of an anchor tag if it matches the href
-          if node.name == "a" && attr == "href" && node["href"] == node.inner_html.delete("\n").strip
-            node.inner_html = result[:placeholder]
-          end
-          node[attr] = result[:placeholder]
-        end
-        add_unresolved_link(result, item_type, mig_id, field)
+        handle_unresolved_link(url, result, node, attr, item_type, mig_id, field)
       end
+    end
+
+    def handle_unresolved_link(url, result, node, attr, item_type, mig_id, field)
+      result.delete(:resolved)
+      if result[:link_type] == :media_object
+        # because we may actually change the media comment node itself
+        # (rather than just replacing a value), we're going to
+        # replace the entire node with a placeholder
+        result[:old_value] = node ? node.to_xml : result[:rel_path]
+
+        result[:placeholder] = placeholder(result[:old_value])
+        placeholder_node = Nokogiri::HTML5.fragment(result[:placeholder])
+
+        node.replace(placeholder_node) if node
+      else
+        result[:old_value] = node ? node[attr] : url
+        result[:placeholder] = placeholder(result[:old_value])
+        # replace the inner html of an anchor tag if it matches the href
+        if node && node.name == "a" && attr == "href" && node["href"] == node.inner_html.delete("\n").strip
+          node.inner_html = result[:placeholder]
+        end
+        node[attr] = result[:placeholder] if node
+      end
+      add_unresolved_link(result, item_type, mig_id, field)
+    end
+
+    def handle_resolved_link(url, result, node, attr)
+      new_url = result[:new_url] || url
+      unless CanvasLinkMigrator.relative_url?(new_url)
+        # perform configured substitutions
+        if (processed_url = @migration_query_service.process_domain_substitutions(new_url))
+          new_url = processed_url
+        end
+        # relative-ize absolute links outside the course but inside our domain
+        # (analogous to what is done in Api#process_incoming_html_content)
+        begin
+          uri = URI.parse(new_url)
+          account_hosts = @migration_query_service.context_hosts.map { |h| h.split(":").first }
+          if account_hosts.include?(uri.host)
+            uri.scheme = uri.host = uri.port = nil
+            new_url = uri.to_s
+          end
+        rescue URI::InvalidURIError, URI::InvalidComponentError
+          nil
+        end
+      end
+      node[attr] = new_url
     end
 
     def unresolved(type, data = {})
@@ -202,8 +215,11 @@ module CanvasLinkMigrator
       "?type=#{type}&embedded=true"
     end
 
+    def parse_single_url(url, link_type = nil)
+      parse_url(url, nil, nil, link_type)
+    end
     # returns a hash with resolution status and data to hold onto if unresolved
-    def parse_url(url, node, attr)
+    def parse_url(url, node, attr, link_type = nil)
       if url =~ /wiki_page_migration_id=(.*)/
         unresolved(:wiki_page, migration_id: $1)
       elsif url =~ /discussion_topic_migration_id=(.*)/
@@ -211,13 +227,13 @@ module CanvasLinkMigrator
       elsif url =~ %r{\$CANVAS_COURSE_REFERENCE\$/modules/items/([^?]*)(\?.*)?}
         unresolved(:module_item, migration_id: $1, query: $2)
       elsif url =~ %r{\$CANVAS_COURSE_REFERENCE\$/file_ref/([^/?#]+)(.*)}
-        in_media_iframe = (attr == "src" && ["iframe", "source"].include?(node.name) && (node["data-media-id"] || node["data-media-type"]))
-        rest = in_media_iframe ? media_params(node["data-media-type"]) : $2
+        in_media_iframe = node && (attr == "src" && %w[iframe source].include?(node.name) && (node["data-media-id"] || node["data-media-type"]))
+        rest = (in_media_iframe && node) ? media_params(node["data-media-type"]) : $2
         unresolved(:file_ref,
                    migration_id: $1,
                    rest: rest,
                    in_media_iframe: in_media_iframe,
-                   target_blank: node['target'] == "_blank" && node.name == "a" && attr == "href"
+                   target_blank: node && node['target'] == "_blank" && node.name == "a" && attr == "href"
         )
       elsif url =~ %r{(?:\$CANVAS_OBJECT_REFERENCE\$|\$WIKI_REFERENCE\$)/([^/]*)/([^?]*)(\?.*)?}
         if KNOWN_REFERENCE_TYPES.include?($1)
@@ -231,16 +247,21 @@ module CanvasLinkMigrator
         resolved("#{@migration_query_service.context_path}/#{$1}")
       elsif url =~ %r{\$IMS(?:-|_)CC(?:-|_)FILEBASE\$/(.*)}
         rel_path = URI::DEFAULT_PARSER.unescape($1)
-        if (attr == "href" && node["class"]&.include?("instructure_inline_media_comment")) ||
-           (attr == "src" && ["iframe", "source"].include?(node.name) && (node["data-media-id"] || node["data-media-type"]))
+
+        if (attr == "href" && node && node["class"]&.include?("instructure_inline_media_comment")) ||
+           (attr == "src" && node && %w[iframe source].include?(node.name) && (node["data-media-id"] || node["data-media-type"])) ||
+          link_type == :media_object
           unresolved(:media_object, rel_path: rel_path)
         else
           unresolved(:file, rel_path: rel_path)
         end
-      elsif (attr == "src" && ["iframe", "source"].include?(node.name) && (node["data-media-id"] || node["data-media-type"]))
+      elsif (attr == "src" && node && %w[iframe source].include?(node.name) && (node["data-media-id"] || node["data-media-type"])) ||
+        link_type == :media_object
         # media_objects_iframe course copy reference without an attachment id, change to media_attachments_iframe
-        unresolved(:media_object, rel_path: node["src"])
-      elsif @migration_query_service.supports_embedded_images && attr == "src" && (info_match = url.match(%r{\Adata:(?<mime_type>[-\w]+/[-\w+.]+)?;base64,(?<image>.*)}m))
+        rel_path =  node ? node["src"] : url
+        unresolved(:media_object, rel_path: rel_path)
+      elsif (@migration_query_service.supports_embedded_images && attr == "src" && (info_match = url.match(%r{\Adata:(?<mime_type>[-\w]+/[-\w+.]+)?;base64,(?<image>.*)}m))) ||
+        link_type == :image
         result = @migration_query_service.link_embedded_image(info_match)
         if result[:resolved]
           resolved(result[:url])
@@ -249,7 +270,7 @@ module CanvasLinkMigrator
         end
       elsif # rubocop:disable Lint/DuplicateBranch
             # Equation image, leave it alone
-            (attr == "src" && node["class"] && node["class"].include?("equation_image")) || # rubocop:disable Layout/ConditionPosition
+            (attr == "src" && node && node["class"] && node["class"].include?("equation_image")) || # rubocop:disable Layout/ConditionPosition
             # The file is in the context of an AQ, leave the link alone
             url =~ %r{\A/assessment_questions/\d+/files/\d+} ||
             # This points to a specific file already, leave it alone

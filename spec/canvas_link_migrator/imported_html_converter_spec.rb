@@ -403,13 +403,40 @@ describe CanvasLinkMigrator::ImportedHtmlConverter do
 
     it "converts iframe srcs that point to non-media files" do
       test_string = <<~HTML
-      <p><iframe style="width: 100%; height: 100vh; border: none;" src="$IMS-CC-FILEBASE$/subfolder/test.png?canvas_download=1"></iframe></p>
+        <p><iframe style="width: 100%; height: 100vh; border: none;" src="$IMS-CC-FILEBASE$/subfolder/test.png?canvas_download=1"></iframe></p>
       HTML
       converted_string = <<~HTML
-      <p><iframe style="width: 100%; height: 100vh; border: none;" src="/courses/2/files/7/download?verifier=u7"></iframe></p>
+        <p><iframe style="width: 100%; height: 100vh; border: none;" src="/courses/2/files/7/download?verifier=u7"></iframe></p>
       HTML
       html = @converter.convert_exported_html(test_string)
       expect(html[0]).to eq converted_string
+    end
+  end
+
+  describe ".convert_single_link" do
+    before(:each) do
+      @path = "/courses/2/"
+      @converter = CanvasLinkMigrator::ImportedHtmlConverter.new(resource_map: JSON.parse(File.read("spec/fixtures/canvas_resource_map.json")))
+    end
+
+    it "converts a wiki reference" do
+      test_string = "%24WIKI_REFERENCE%24/wiki/test-wiki-page?query=blah"
+      link = @converter.convert_single_link(test_string)
+      expect(link).to eq "#{@path}pages/test-wiki-page?query=blah"
+    end
+
+    it "converts a wiki reference with migration id" do
+      test_string = "%24WIKI_REFERENCE%24/pages/A?query=blah"
+      link = @converter.convert_single_link(test_string)
+      expect(link).to eq "#{@path}pages/slug-a?query=blah"
+    end
+
+    it "formats media properly if explicitly set to do so" do
+      test_string = "$IMS-CC-FILEBASE$/subfolder/with a space/yodawg.mov?canvas_=1&canvas_qs_type=video&canvas_qs_amp=&canvas_qs_embedded=true&media_attachment=true"
+      link = @converter.convert_single_link(test_string, link_type: :media_object)
+      expect(link).to eq "/media_attachments_iframe/9?embedded=true&verifier=u9"
+      link = @converter.convert_single_link(test_string)
+      expect(link).to eq "/courses/2/files/9?verifier=u9&type=video&amp=&embedded=true"
     end
   end
 end
