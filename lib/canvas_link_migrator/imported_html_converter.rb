@@ -32,6 +32,18 @@ module CanvasLinkMigrator
     delegate :convert, to: :link_parser
     delegate :resolver_links!, to: :link_resolver
 
+    def convert_single_link(single_link, link_type: false)
+      url = single_link.dup
+      LinkParser::REFERENCE_KEYWORDS.each { |ref| url.gsub!("%24#{ref}%24", "$#{ref}$") }
+      # create the link map for a single link (parse)
+      link_parsing_result = link_parser.parse_single_url(url, link_type)
+      link_parser.handle_parsed_url(url, link_parsing_result, nil, nil, link_type, nil, nil)
+      # resolve_link! on the single element link map
+      link_resolver.resolve_link!(link_parsing_result, link_type)
+      # return the new value
+      link_parsing_result[:new_value]
+    end
+
     def convert_exported_html(input_html)
       new_html = link_parser.convert(input_html, "type", "lookup_id", "field")
       replace!(new_html)
