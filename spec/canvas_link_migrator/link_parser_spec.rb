@@ -69,5 +69,19 @@ describe CanvasLinkMigrator::LinkParser do
       doc = Nokogiri::HTML5.fragment(%Q(<a id="media_comment_m-4uoGqVdEqXhpqu2ZMytHSy9XMV73aQ7E" class="instructure_inline_media_comment" data-media_comment_type="video" data-alt=""></a>))
       expect{ parser.convert(doc.to_html, "type", "lookup_id", "field") }.not_to raise_error
     end
+
+    it "handles deeply nested html up to 10.000 levels" do
+      deeply_nested_html = "<div>" * 9999
+      deeply_nested_html += "<a target=\"_blank\"></a>"
+      deeply_nested_html += "</div>" * 9999
+      expect{ parser.convert(deeply_nested_html, "type", "lookup_id", "field") }.not_to raise_error
+    end
+
+    it "raises error when html is beyond 10.000 depth" do
+      deeply_nested_html = "<div>" * 10_000
+      deeply_nested_html += "<a target=\"_blank\"></a>"
+      deeply_nested_html += "</div>" * 10_000
+      expect{ parser.convert(deeply_nested_html, "type", "lookup_id", "field") }.to raise_error("Document tree depth limit exceeded")
+    end
   end
 end

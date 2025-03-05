@@ -81,7 +81,7 @@ module CanvasLinkMigrator
 
     def convert(html, item_type, mig_id, field, remove_outer_nodes_if_one_child: nil)
       mig_id = mig_id.to_s
-      doc = Nokogiri::HTML5.fragment(html || "")
+      doc = Nokogiri::HTML5.fragment(html || "", max_tree_depth: 10_000)
 
       # Replace source tags with iframes
       doc.search("source[data-media-type],source[data-media-id]").each do |source|
