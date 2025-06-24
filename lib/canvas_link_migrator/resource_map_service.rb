@@ -94,7 +94,7 @@ module CanvasLinkMigrator
 
     def media_map
       @media_map ||= resources["files"].each_with_object({}) do |(_mig_id, file), map|
-        media_id = file.dig("destination", "media_entry_id")
+        media_id = file.dig("source", "media_entry_id") if file.is_a?(Hash)
         next unless media_id
         map[media_id] = file
       end
