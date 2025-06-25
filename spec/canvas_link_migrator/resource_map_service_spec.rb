@@ -22,7 +22,7 @@ require "spec_helper"
 
 describe CanvasLinkMigrator::ResourceMapService do
 
-  CANVAS_RESOURCE_MAP_PATH = "/home/docker/canvas_link_migrator_gem/spec/fixtures/canvas_resource_map.json"
+  CANVAS_RESOURCE_MAP_PATH = "spec/fixtures/canvas_resource_map.json"
 
   def service(assets = canvas_resource_map_json)
     CanvasLinkMigrator::ResourceMapService.new(assets)
