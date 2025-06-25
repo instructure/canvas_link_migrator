@@ -250,7 +250,10 @@ module CanvasLinkMigrator
       elsif rel_path&.match(/\/media_attachments_iframe\/\d+/)
         # media attachment from another course or something
         rel_path
-      elsif node["data-media-id"] && (file_id, uuid = @migration_id_converter.convert_attachment_media_id(node["data-media-id"]))
+      elsif node["data-media-id"] && (file_id, uuid, media_entry_id = @migration_id_converter.convert_attachment_media_id(node["data-media-id"]))
+        # Seems we need to update the data-media-id attribute otherwise if the Course is
+        # exported and imported the data-media-id will not be correct.
+        node["data-media-id"] = media_entry_id if media_entry_id
         file_id ? media_attachment_iframe_url(file_id, uuid, node["data-media-type"]) : nil
       elsif (identifier = rel_path.match(/media_objects(?:_iframe)?\/([^?.]+)/)) && (file_id, uuid = @migration_id_converter.convert_attachment_media_id(identifier.[](1)))
         file_id ? media_attachment_iframe_url(file_id, uuid, node["data-media-type"]) : nil

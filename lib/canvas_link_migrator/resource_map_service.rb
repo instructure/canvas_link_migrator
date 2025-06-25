@@ -93,15 +93,15 @@ module CanvasLinkMigrator
     end
 
     def media_map
-      @media_map ||= resources["files"].each_with_object({}) do |(_mig_id, file), map|
-        media_id = file.dig("destination", "media_entry_id")
+      @media_map ||= resources["files"]&.each_with_object({}) do |(_mig_id, file), map|
+        media_id = file.dig("source", "media_entry_id") if file.respond_to?(:dig)
         next unless media_id
         map[media_id] = file
       end
     end
 
     def convert_attachment_media_id(media_id)
-      media_map.dig(media_id, "destination")&.slice("id", "uuid")&.values
+      media_map&.dig(media_id, "destination")&.slice("id", "uuid", "media_entry_id")&.values
     end
 
     def convert_migration_id(type, migration_id)
