@@ -175,7 +175,7 @@ describe CanvasLinkMigrator::ResourceMapService do
   describe ".convert_attachment_media_id" do
     it "returns the attachment media id for a media entry id" do
       media_id = "0_bq09qam2"
-      expected_id = ["6", "u6"]
+      expected_id = ["6", "u6", "0_bq09qam2"]
       expect(service.convert_attachment_media_id(media_id)).to eq(expected_id)
     end
 
