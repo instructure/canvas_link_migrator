@@ -101,7 +101,7 @@ module CanvasLinkMigrator
     end
 
     def convert_attachment_media_id(media_id)
-      media_map.dig(media_id, "destination")&.slice("id", "uuid")&.values
+      media_map&.dig(media_id, "destination")&.slice("id", "uuid")&.values
     end
 
     def convert_migration_id(type, migration_id)
