@@ -7,7 +7,6 @@
       "lolcat.mp3": "H",
       "test.png": "E"
     },
-    "contains_migration_ids": true,
     "destination_course": "2",
     "destination_hosts": [
       "apple.edu",
